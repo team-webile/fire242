@@ -13,6 +13,7 @@ class OCRController extends Controller
      */
     public function index()
     {
+        // check if the user is authenticated
         return view('ocr.upload');
     }
 
