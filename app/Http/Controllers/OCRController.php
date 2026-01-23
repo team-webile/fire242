@@ -13,7 +13,7 @@ class OCRController extends Controller
      */
     public function index()
     {
-        //test by arslan
+        //test by arslan again
         return view('ocr.upload');
     }
 
