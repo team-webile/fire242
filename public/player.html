@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Static Template</title>
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/media-chrome@0.20/+esm"
+    ></script>
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/media-chrome@0.20/dist/media-theme-element.js"
+    ></script>
+  </head>
+  <body>
+    <template id="tiny-theme">
+      <media-controller>
+        <slot name="media" slot="media"></slot>
+        <media-control-bar>
+          <media-play-button></media-play-button>
+        </media-control-bar>
+      </media-controller>
+    </template>
+
+    <media-theme template="tiny-theme">
+      <video
+        slot="media"
+        src="https://stream.mux.com/A3VXy02VoUinw01pwyomEO3bHnG4P32xzV7u1j1FSzjNg/high.mp4"
+      ></video>
+    </media-theme>
+  </body>
+</html>
