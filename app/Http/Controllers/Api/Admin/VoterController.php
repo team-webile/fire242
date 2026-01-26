@@ -2053,7 +2053,7 @@ class VoterController extends Controller
                 $voting_for = $get_party->name;
                 $query->where('surveys.voting_for', $voting_for);
             }
-       }
+       } 
         if($is_died !== null && $is_died !== ''){
             $query->where('surveys.is_died', $is_died);
         }
