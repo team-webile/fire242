@@ -2029,7 +2029,7 @@ class VoterController extends Controller
             $query->where('surveys.challenge', true);
         }
         else if ($challenge === 'false') {
-            $query->where('surveys.challenge', false);
+            $query->where('surveys.challenge', false); 
         }
         
         if ($existsInDatabase === 'true') {
