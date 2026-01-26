@@ -2043,7 +2043,7 @@ class VoterController extends Controller
         if( $voting_for !== null && $voting_for !== ''){
             // Check if voting_for is numeric (ID) or a string (name)
             if (is_numeric($voting_for)) {
-                $get_party = Party::where('id', $voting_for)->first(); 
+                $get_party = Party::where('id', $voting_for)->first();  
             } else {
                 // Search by name (case-insensitive)
                 $get_party = Party::whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first();
