@@ -435,6 +435,13 @@ Route::middleware([ 'jwt.auth'])->group(function () {
 
         Route::get('unregistered-voters-diff-address', [App\Http\Controllers\Api\Manager\UnregisteredVoterController::class, 'getUnregisteredVotersDiffAddress']);  
 
+        Route::post('add-voter-card-result', [ManagerVoterCardController::class, 'addVoterCardResult']); 
+        Route::get('get-voter-card-result/{id}', [ManagerVoterCardController::class, 'getVoterCardResult']); 
+        Route::post('update-voter-card-result/{id}', [ManagerVoterCardController::class, 'updateVoterCardResult']); 
+        Route::delete('delete-voter-card-result/{id}', [ManagerVoterCardController::class, 'deleteVoterCardResult']); 
+        Route::get('list-voter-card-result', [ManagerVoterCardController::class, 'listVoterCardResult']); 
+        Route::get('get-voter-with-id/{id}', [ManagerVoterCardController::class, 'getVoterWithId']);  
+
     }); 
          
 

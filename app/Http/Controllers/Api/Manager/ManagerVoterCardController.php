@@ -549,7 +549,258 @@ class ManagerVoterCardController extends Controller
             'message' => 'Constituencies retrieved successfully',
             'data' => $paginatedResults
         ]);
-    }  
+    } 
+    
+    
+
+    public function addVoterCardResult(Request $request){
+
+        $validator = Validator::make($request->all(), [ 
+          'voter_id' => 'required|exists:voters,voter',
+          'voter_name' => 'nullable|string',
+          'party' => 'required',
+          'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
+        if ($validator->fails()) {
+          return response()->json(['success' => false, 'message' => 'Validation failed', 'data' => $validator->errors()], 422);
+        }
+        
+        // Check if voter_id already exists
+        $existingRecord = VoterCardImage::where('reg_no', $request->voter_id)->first();
+        
+        if ($existingRecord) {
+          return response()->json([
+            'success' => false,
+            'message' => 'Voter card result already exists for this voter ID. Use update API to modify.',
+            'data' => ['voter_id' => $request->voter_id]
+          ], 409);
+        }
+    
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imagePath = $image->store('voter_cards_images', 'public');
+        }
+    
+        $voterCardImage = VoterCardImage::create([
+          'user_id' => auth()->user()->id,
+          'reg_no' => $request->voter_id,
+          'voter_name' => isset($request->voter_name) && !empty($request->voter_name) ? $request->voter_name : null,
+          'exit_poll' => $request->party,
+          'image' => $imagePath,
+          'processed' => 1,
+        ]);
+        
+        if($voterCardImage){
+          // Clear cached reports and party-based voter card lists
+          Cache::flush();
+    
+          return response()->json([
+            'success' => true,
+            'message' => 'Voter card result added successfully',
+            'data' => $voterCardImage
+          ], 200);
+        }
+        
+        return response()->json([
+          'success' => false,
+          'message' => 'Failed to add voter card result',
+          'data' => null
+        ], 400);
+      }
+    
+      public function updateVoterCardResult(Request $request, $id){
+        $validator = Validator::make($request->all(), [ 
+          'voter_id' => 'sometimes|required|exists:voters,voter',
+          'party' => 'sometimes|required',
+          'voter_name' => 'nullable|string',  
+          'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]); 
+        
+        if ($validator->fails()) {
+          return response()->json([
+            'success' => false,
+            'message' => 'Validation failed',
+            'data' => $validator->errors()
+          ], 422);
+        }
+    
+        $voterCardImage = VoterCardImage::find($id);
+        
+        if (!$voterCardImage) {
+          return response()->json([
+            'success' => false,
+            'message' => 'Voter card result not found',
+            'data' => null
+          ], 404);
+        }
+    
+        // If voter_id is being updated, check if new voter_id already exists
+        if ($request->has('voter_id') && $request->voter_id != $voterCardImage->reg_no) {
+          $existingRecord = VoterCardImage::where('reg_no', $request->voter_id)
+                                           ->where('id', '!=', $id) 
+                                           ->first();
+          
+          if ($existingRecord) {
+            return response()->json([
+              'success' => false,
+              'message' => 'Voter card result already exists for this voter ID',
+              'data' => ['voter_id' => $request->voter_id] 
+            ], 409);
+          }
+        }
+    
+        $updateData = [];
+        
+        if ($request->has('voter_id')) {
+          $updateData['reg_no'] = $request->voter_id;
+        }
+        
+        if ($request->has('party')) {
+          $updateData['exit_poll'] = $request->party;
+        }
+    
+        if ($request->has('voter_name')) {
+          $updateData['voter_name'] = $request->voter_name ?? null; 
+        }
+    
+        if ($request->hasFile('image')) {
+          // Delete old image if exists
+          if ($voterCardImage->image && Storage::disk('public')->exists($voterCardImage->image)) {
+            Storage::disk('public')->delete($voterCardImage->image);
+          }
+          
+          $image = $request->file('image');
+          $updateData['image'] = $image->store('voter_cards_images', 'public');
+        }
+    
+        // Set processed to 1 on update
+        $updateData['processed'] = 1;
+    
+        $voterCardImage->update($updateData);
+        $voterCardImage->refresh();
+    
+        // Clear cached reports and party-based voter card lists
+        Cache::flush();
+    
+        return response()->json([
+          'success' => true,
+          'message' => 'Voter card result updated successfully',
+          'data' => $voterCardImage
+        ], 200);
+      }
+    
+      public function deleteVoterCardResult(Request $request, $id){ 
+        $voterCardImage = VoterCardImage::find($id);
+        
+        if (!$voterCardImage) {
+          return response()->json([
+            'success' => false,
+            'message' => 'Voter card result not found',
+            'data' => null
+          ], 404);
+        }
+    
+        // Delete image file if exists
+        if ($voterCardImage->image && Storage::disk('public')->exists($voterCardImage->image)) {
+          Storage::disk('public')->delete($voterCardImage->image);
+        }
+    
+        $voterCardImage->delete();
+        Cache::flush();
+        return response()->json([
+          'success' => true,
+          'message' => 'Voter card result deleted successfully',
+          'data' => null
+        ], 200);
+      }
+    
+    
+      public function getVoterCardResult(Request $request, $id){
+        $voterCardImage = VoterCardImage::with('user', 'voter.constituency')->find($id);
+        
+        if (!$voterCardImage) {
+          return response()->json([
+            'success' => false,
+            'message' => 'Voter card result not found',
+            'data' => null
+          ], 404);
+        }
+    
+        $transformedData = $this->transformVoterCardResponse($voterCardImage);
+    
+        return response()->json([
+          'success' => true,
+          'message' => 'Voter card result retrieved successfully',
+          'data' => $transformedData
+        ], 200);
+      }
+    
+      public function listVoterCardResult(Request $request){
+    
+        $query = VoterCardImage::with(['user', 'voter.constituency'])->where('user_id', auth()->user()->id)->orderBy('id', 'desc');
+    
+        // Filter by voter_id if provided
+        if ($request->has('voter') && !empty($request->get('voter'))) {
+          $query->where('reg_no', 'like', '%' . $request->get('voter') . '%');
+        }
+        // Filter by party (exit_poll) if provided
+        if ($request->has('voting_for') && !empty($request->get('voting_for'))) {
+          $query->whereRaw('LOWER(exit_poll) = ?', [strtolower($request->get('voting_for'))]);
+        }
+    
+    
+        if ($request->has('voter_null') && !empty($request->get('voter_null')) && $request->get('voter_null') == 'yes') {
+          $query->whereNull('reg_no');
+        }else if ($request->has('voter_null') && !empty($request->get('voter_null')) && $request->get('voter_null') == 'no') {
+          $query->whereNotNull('reg_no');
+        }
+    
+    
+        if ($request->has('polling') && !empty($request->get('polling'))) {
+          
+          $query->whereHas('voter', function($q) use ($request) {
+            $q->where('polling', $request->get('polling'));
+          });
+        }
+    
+     
+        $perPage = min($request->get('per_page', 20), 100);
+        $voterCardImages = $query->paginate($perPage);
+    
+        // Transform the response to match expected format
+        $transformedData = $this->transformPaginatedResponse($voterCardImages);
+    
+        return response()->json([ 
+          'success' => true,
+          'message' => 'Voter card result list retrieved successfully',
+          'data' => $transformedData,
+        ], 200);
+      }
+    
+      public function getVoterWithId(Request $request, $id){
+    
+        $constituency_id = explode(',', auth()->user()->constituency_id);
+        $voter = Voter::where('voter', $id)->whereIn('const', $constituency_id)->first();
+        if (!$voter) {
+          return response()->json([
+            'success' => false,
+            'message' => 'Voter not found',
+            'data' => null
+          ], 404);
+        } 
+        
+        return response()->json([
+          'success' => true,
+          'message' => 'Voter retrieved successfully',
+          'data' => $voter->first_name . ' ' . $voter->second_name . ' ' . $voter->surname
+        ], 200);
+      }
+
+
+
+
+
 
 
 }
