@@ -950,7 +950,7 @@ class SurveyController extends Controller
         $constituencies = Constituency::orderBy('name', 'asc')
             ->get();
 
-        $countries = Country::where('is_active', true)
+        $countries = Country::where('is_active', 'true')
             ->orderBy('name', 'asc')
             ->with('locations')
             ->get();
