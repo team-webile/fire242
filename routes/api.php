@@ -281,7 +281,7 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         // });
         Route::post('add-voter-card-result', [UserVoterCardController::class, 'addVoterCardResult']); 
         Route::get('get-voter-card-result/{id}', [UserVoterCardController::class, 'getVoterCardResult']); 
-        Route::post('update-voter-card-result/{id}', [UserVoterCUserVoterCardControllerontroller::class, 'updateVoterCardResult']); 
+        Route::post('update-voter-card-result/{id}', [UserVoterCardController::class, 'updateVoterCardResult']); 
         Route::delete('delete-voter-card-result/{id}', [UserVoterCardController::class, 'deleteVoterCardResult']); 
         Route::get('list-voter-card-result', [UserVoterCardController::class, 'listVoterCardResult']); 
         Route::post('upload-voter-card', [DashboardController::class, 'upload_voter_card']); 
