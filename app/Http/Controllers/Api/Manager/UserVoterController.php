@@ -1348,7 +1348,21 @@ public function print_voters(Request $request)
 
         // Optimized query: Use leftJoin for better performance
         $query = Voter::query()
-            ->select('voters.*', 'constituencies.name as constituency_name')
+            ->select(
+                'voters.*', 'constituencies.name as constituency_name',
+                'ls.survey_id',
+                'ls.voter_id',
+                'ls.home_phone_code',
+                'ls.home_phone',
+                'ls.work_phone_code',
+                'ls.work_phone',
+                'ls.cell_phone_code',
+                'ls.cell_phone',
+                'ls.voting_for',
+                'ls.challenge',
+                'ls.survey_created_at',
+                'ls.survey_updated_at'
+            )
             ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
             ->whereIn('voters.const', $constituency_ids)
             ->where('voters.exists_in_database', false);
@@ -1441,7 +1455,7 @@ public function print_voters(Request $request)
             'dob', 'pobcn', 'pobis', 'pobse', 'house_number', 'aptno', 'blkno', 
             'address', 'newly_registered', 'created_at', 'updated_at', 'is_contacted', 
             'diff_address', 'living_constituency', 'search_vector', 'exists_in_database', 
-            'last_checked_at', 'flagged', 'constituency_name'
+            'last_checked_at', 'flagged', 'constituency_name' 
         ];
 
         // Process with minimal overhead - direct property access, no array conversions
