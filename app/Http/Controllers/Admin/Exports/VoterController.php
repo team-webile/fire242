@@ -389,17 +389,19 @@ class VoterController extends Controller
 
 
       
+       $latestSurveySubquery = DB::table('surveys')
+           ->select('voter_id', DB::raw('MAX(id) as latest_survey_id'))
+           ->groupBy('voter_id');
+
        $query = Voter::with('user')
-       ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date','surveys.user_id','surveys.located','surveys.voting_decision','surveys.voting_for','surveys.is_died','surveys.died_date') 
-       ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
-       ->join('surveys', 'voters.id', '=', 'surveys.voter_id')
-       ->whereExists(function ($query) {
-           $query->select('id')
-               ->from('surveys')
-               ->whereColumn('surveys.voter_id', 'voters.id');
-       })
-       ->where('surveys.is_died', 1)
-       ->orderBy('surveys.id', 'desc');
+           ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date','surveys.user_id','surveys.located','surveys.voting_decision','surveys.voting_for','surveys.is_died','surveys.died_date')
+           ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
+           ->joinSub($latestSurveySubquery, 'latest_surveys', function($join) {
+               $join->on('voters.id', '=', 'latest_surveys.voter_id');
+           })
+           ->join('surveys', 'surveys.id', '=', 'latest_surveys.latest_survey_id')
+           ->where('surveys.is_died', 1)
+           ->orderBy('surveys.id', 'desc');
 
        if (!empty($voting_decision)) {
         $query->where('surveys.voting_decision', $voting_decision);
