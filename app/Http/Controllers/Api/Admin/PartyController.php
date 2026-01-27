@@ -194,10 +194,12 @@ class PartyController extends Controller
 
     public function livesearchGetAllParties(Request $request)
     {
-        $query = Party::query();
-        if ($request->has('search') && !empty($request->party)) {
+        $query = Party::query()->orderBy('position', 'asc');
+        
+        if ($request->has('search') && !empty($request->search)) {
             $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($request->search) . '%']);
         }
+        
         return response()->json(['success' => true, 'data' => $query->get()]);
     }
  
