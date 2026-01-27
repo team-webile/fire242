@@ -425,6 +425,21 @@ class Admin_SurveyController extends Controller
         }
     }
 
+    public function storeSurveyAnswers(Request $request,$survey)
+    {
+        if ($request->has('questions') && is_array($request->questions)) {
+            foreach ($request->questions as $questionData) {
+                if (isset($questionData['question_id']) && isset($questionData['answer_id'])) {
+                    SurveyAnswer::create([
+                        'survey_id' => $survey->id,
+                        'question_id' => $questionData['question_id'],
+                        'answer_id' => $questionData['answer_id']
+                    ]);
+                }
+            }
+        }
+    }
+
     public function surveyer_search(Request $request)
     {
         $query = User::query()
