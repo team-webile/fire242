@@ -72,6 +72,10 @@ Route::middleware([ 'jwt.auth'])->group(function () {
     Route::middleware(['role:Admin'])->prefix('admin')->group(function () {
 
 
+
+        Route::get('voter', [Admin_SurveyController::class, 'getVoter']);
+        Route::get('questions-answers', [Admin_SurveyController::class, 'getQuestionsAnswers']); 
+
         Route::get('get-constituencies/reports', [ConstituencyController::class, 'getConstituencyReports']); 
         Route::get('getConstituencyReport1', [ConstituencyController::class, 'getConstituencyReport1']);
         Route::get('getConstituencyReport2', [ConstituencyController::class, 'getConstituencyReport2']);

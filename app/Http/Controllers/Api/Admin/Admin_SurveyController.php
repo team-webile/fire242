@@ -439,6 +439,113 @@ class Admin_SurveyController extends Controller
             'data' => $users
         ]);
     }
+
+
+    public function getVoter(Request $request)
+    { 
+
+        if (!$request->voterId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Voter ID is required'
+            ], 400);
+        }
+        if (!auth()->check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+
+        // Get constituencies names
+        // No constituency restriction for admin, so fetch from all constituencies
+        $query = Voter::select('voters.*', 'constituencies.name as constituency_name')
+            ->join('constituencies', 'voters.const', '=', 'constituencies.id');
+            
+        if ($request->voterId) {
+            $query->where('voter', $request->voterId);
+        }
+        $underAge25 = $request->input('under_age_25');
+        $existsInDatabase = $request->input('exists_in_database');
+
+        // Apply exists_in_database filter
+        if ($existsInDatabase === 'true') {
+            $query->where('voters.exists_in_database', true);
+        } elseif ($existsInDatabase === 'false') {
+            $query->where('voters.exists_in_database', false);
+        }
+
+        
+
+        // if ($request->firstName) {
+        //     $query->where('first_name', 'like', '%' . $request->firstName . '%');
+        // }
+        // if ($request->lastName) {
+        //     $query->where('last_name', 'like', '%' . $request->lastName . '%'); 
+        // }
+        // if ($request->email) {
+        //     $query->where('email', 'like', '%' . $request->email . '%');
+        // }
+        // if ($request->phone) {
+        //     $query->where('phone', 'like', '%' . $request->phone . '%');
+        // } 
+
+        $voter = $query->first();
+       
+        if (!$voter) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Voter not found or not in your assigned constituencies'
+            ], 404);
+        }
+         
+        $dropdowns = Cache::remember('active_dropdowns', 60 * 24, function() {
+            $dropdownTypes = DropdownType::where('status', 'active')
+                ->select('id', 'value', 'type')
+                ->orderBy('position', 'asc')
+                ->get()
+                ->groupBy('type')
+                ->map(function($items) {
+                    return $items->map(function($item) {
+                        return [
+                            'id' => $item->id,
+                            'value' => $item->value
+                        ];
+                    });
+                }) 
+                ->toArray();
+ 
+            return $dropdownTypes;
+        });  
+
+        $parties = Party::where('status', 'active')
+            ->orderBy('name', 'asc')
+            ->get();
+            
+        $constituencies = Constituency::orderBy('name', 'asc')
+            ->get();
+
+        $countries = Country::where('is_active', 'true')
+            ->orderBy('name', 'asc')
+            ->with('locations')
+            ->get();
+  
+        return response()->json([
+            'success' => true,
+            'data' => $voter,
+            'dropdowns' => $dropdowns,
+            'parties' => $parties,
+            'constituencies' => $constituencies,
+            'countries' => $countries
+        ]); 
+    }
+
+    public function getQuestionsAnswers() 
+    {
+        $questions = Question::with(['answers:id,question_id,answer,position'])->orderBy('position', 'asc')->get();
+        return response()->json(['success' => true, 'questions' => $questions]); 
+    }
  
 
 }
