@@ -238,6 +238,7 @@ class SurveyController extends Controller
             return [
                 'voterId' => $voter->voter,
                 'is_national' => $is_national,
+                'dob' => $voter->dob,
                 'name' => trim($voter->first_name . ' ' . ($voter->second_name ?? '') . ' ' . $voter->surname),
                 'address' => $voter->address,
                 'constituency_name' => $voter->constituency_name,
