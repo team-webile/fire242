@@ -142,6 +142,7 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('/surveys/challenge/{id}', [Admin_SurveyController::class, 'make_challange']);
 
         Route::get('surveys/{id}', [Admin_SurveyController::class, 'show']);
+        Route::post('surveys/{id}', [Admin_SurveyController::class, 'update']);
         Route::get('surveyer-search', [Admin_SurveyController::class, 'surveyer_search']);
  
 

@@ -223,34 +223,205 @@ class Admin_SurveyController extends Controller
             ], 403);
         }
 
-        $validatedData = $request->validate([
-            'sex' => 'sometimes|string',
-            'marital_status' => 'sometimes|string',
-            'employed' => 'sometimes|boolean',
-            'children' => 'sometimes|boolean',
-            'employment_type' => 'sometimes|string',
-            'religion' => 'sometimes|string',
-            'located' => 'sometimes|string',
-            'home_phone' => 'nullable|string',
-            'work_phone' => 'nullable|string',
-            'cell_phone' => 'nullable|string',
-            'email' => 'nullable|email',
-            'special_comments' => 'nullable|string',
-            'other_comments' => 'nullable|string',
-            'voting_for' => 'sometimes|string',
-            'voted_in_2017' => 'sometimes|boolean',
-            'where_voted_in_2017' => 'nullable|string',
-            'voted_in_house' => 'sometimes|string'
-        ]);
+        try {
+            // Check Manager authorization
+            if (!auth()->check() || auth()->user()->role->name !== 'Admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized - Admin access required'
+                ], 403);
+            }
 
-        $survey = Survey::findOrFail($id);
-        $survey->update($validatedData);
+            // Find the survey
+            $survey = Survey::find($id);
+            
+            if (!$survey) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Survey not found'
+                ], 404);
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Survey updated successfully',
-            'data' => $survey
-        ]);
+            \Log::info('Survey update request:', [
+                'user_id' => auth()->id(),
+                'survey_id' => $id,
+                'request_data' => $request->all()
+            ]);
+
+            // Validate survey data
+            $validator = \Validator::make($request->all(), [
+                'voter_id' => 'sometimes|exists:voters,id',
+                'sex' => 'sometimes|string',
+                'marital_status' => 'sometimes|string',
+                'employed' => 'sometimes|string',
+                'children' => 'sometimes|string',
+                'employment_type' => 'nullable|string',
+                'employment_sector' => 'nullable|string',
+                'religion' => 'sometimes|string',
+                'located' => 'sometimes|string|in:Main Island,Off Island,Outside Country',
+                'island' => 'required_if:located,Off Island|prohibited_if:located,Main Island,Outside Country',
+                'country' => 'required_if:located,Outside Country|prohibited_if:located,Main Island,Off Island',
+                'country_location' => 'required_if:located,Outside Country|prohibited_if:located,Main Island,Off Island',
+                'home_phone_code' => 'nullable|string',
+                'home_phone' => 'nullable|string',
+                'work_phone_code' => 'nullable|string',
+                'work_phone' => 'nullable|string',
+                'cell_phone_code' => 'nullable|string',
+                'cell_phone' => 'nullable|string',
+                'email' => 'nullable|email',
+                'special_comments' => 'nullable|string',
+                'other_comments' => 'nullable|string',
+                'voting_for' => 'sometimes|string',
+                'last_voted' => 'nullable|string',
+                'voted_for_party' => 'nullable|string',
+                'voted_where' => 'nullable|string',
+                'voted_in_house' => 'nullable|string',
+                'voters_in_house' => 'nullable|string',
+                'note' => 'nullable|string',
+                'voting_decision' => 'nullable|string',
+                'voter_image' => 'nullable|string',
+                'house_image' => 'nullable|string',
+                'questions' => 'nullable|array',
+                'questions.*.question_id' => 'required_with:questions|integer',
+                'questions.*.answer_id' => 'required_with:questions|integer',
+                'unregistered_voters' => 'nullable|array',
+                'unregistered_voters.*.first_name' => 'required_with:unregistered_voters|string',
+                'unregistered_voters.*.last_name' => 'required_with:unregistered_voters|string',
+                'unregistered_voters.*.dob' => 'required_with:unregistered_voters|date',
+                'unregistered_voters.*.gender' => 'required_with:unregistered_voters|string',
+                'unregistered_voters.*.address' => 'required_with:unregistered_voters|string',
+                'unregistered_voters.*.email' => 'nullable|email',
+                'unregistered_voters.*.phone' => 'required_with:unregistered_voters|string'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Prepare survey data for update
+            $surveyData = [];
+            
+            $fieldsToUpdate = [
+                'voter_id', 'sex', 'marital_status', 'employed', 'children',
+                'employment_type', 'employment_sector', 'religion', 'located',
+                'island', 'country', 'country_location', 'home_phone_code',
+                'home_phone', 'work_phone_code', 'work_phone', 'cell_phone_code',
+                'cell_phone', 'email', 'special_comments', 'other_comments',
+                'voting_for', 'last_voted', 'voted_for_party', 'voted_where',
+                'voted_in_house', 'voters_in_house', 'note', 'voting_decision'
+            ];
+
+            // Get the located value (from request or current survey)
+            $located = $request->has('located') ? $request->located : $survey->located;
+
+            foreach ($fieldsToUpdate as $field) {
+                if ($request->has($field)) {
+                    // Handle special cases for conditional fields
+                    if ($field === 'island') {
+                        if ($located === 'Off Island') {
+                            $surveyData[$field] = $request->$field;
+                        } else {
+                            $surveyData[$field] = null;
+                        }
+                    } elseif ($field === 'country' || $field === 'country_location') {
+                        if ($located === 'Outside Country') {
+                            $surveyData[$field] = $request->$field;
+                        } else {
+                            $surveyData[$field] = null;
+                        }
+                    } else {
+                        $surveyData[$field] = $request->$field;
+                    }
+                }
+            }
+
+            // Handle images if present
+            if ($request->hasFile('voter_image')) {
+                $voterImagePath = $request->file('voter_image')->store('surveys/voter_images', 'public');
+                $surveyData['voter_image'] = $voterImagePath;
+            }
+
+            if ($request->hasFile('home_image')) {
+                $homeImagePath = $request->file('home_image')->store('surveys/home_images', 'public');
+                $surveyData['home_image'] = $homeImagePath;
+            }
+
+            // Update the survey
+            $survey->update($surveyData);
+
+            // Update survey answers if provided
+            if ($request->has('questions') && is_array($request->questions)) {
+                // Delete existing survey answers
+                SurveyAnswer::where('survey_id', $survey->id)->delete();
+                
+                // Create new survey answers
+                $this->storeSurveyAnswers($request, $survey);
+            }
+
+            // Handle unregistered voters if provided
+            $updatedVoters = [];
+            if ($request->has('unregistered_voters') && is_array($request->unregistered_voters)) {
+                // Delete existing unregistered voters for this survey
+                UnregisteredVoter::where('survey_id', $survey->id)->delete();
+                
+                // Create new unregistered voters
+                foreach ($request->unregistered_voters as $userData) {
+                    $validator = Validator::make($userData, [
+                        'first_name' => 'required|string|max:255',
+                        'last_name' => 'required|string|max:255',
+                        'dob' => 'required|date',
+                        'gender' => 'required|string',
+                        'phone' => 'required|string|max:20',
+                        'email' => 'nullable|email|max:255',
+                        'address' => 'required|string'
+                    ]);
+
+                    if ($validator->fails()) {
+                        continue; // Skip invalid entries
+                    }
+
+                    $unregisteredVoter = UnregisteredVoter::create([
+                        'voter_id' => $survey->voter_id,
+                        'survey_id' => $survey->id,
+                        'first_name' => $userData['first_name'],
+                        'last_name' => $userData['last_name'],
+                        'date_of_birth' => $userData['dob'],
+                        'gender' => $userData['gender'],
+                        'phone_number' => $userData['phone'],
+                        'new_email' => $userData['email'] ?? null,
+                        'new_address' => $userData['address'],
+                        'user_id' => auth()->user()->id
+                    ]);
+
+                    $updatedVoters[] = $unregisteredVoter;
+                }
+            }
+
+            // Reload survey with relationships
+            $survey->refresh();
+            $survey->load('voter');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Survey updated successfully',
+                'data' => [
+                    'survey' => $survey,
+                    'unregistered_voters' => $updatedVoters
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('Error updating survey: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating survey',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function surveyer_search(Request $request)
