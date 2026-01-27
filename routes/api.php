@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\Manager\ManagerVoterCardController;
 use App\Http\Controllers\Api\Admin\PageController;
 use App\Http\Controllers\Api\Admin\ManagerPageController; 
 use App\Http\Controllers\Api\Admin\VoterCardController;
+use App\Http\Controllers\Api\User\UserVoterCardController;
 use App\Http\Controllers\Api\Admin\RolePermissionController; 
 
 use App\Http\Controllers\OCRController;
@@ -278,11 +279,11 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         //     Route::get('voters-list/newly-registered', [UserVoterController::class, 'newlyRegistered']);
      
         // });
-        Route::post('add-voter-card-result', [UserVoterController::class, 'addVoterCardResult']); 
-        Route::get('get-voter-card-result/{id}', [UserVoterController::class, 'getVoterCardResult']); 
-        Route::post('update-voter-card-result/{id}', [UserVoterController::class, 'updateVoterCardResult']); 
-        Route::delete('delete-voter-card-result/{id}', [UserVoterController::class, 'deleteVoterCardResult']); 
-        Route::get('list-voter-card-result', [UserVoterController::class, 'listVoterCardResult']); 
+        Route::post('add-voter-card-result', [UserVoterCardController::class, 'addVoterCardResult']); 
+        Route::get('get-voter-card-result/{id}', [UserVoterCardController::class, 'getVoterCardResult']); 
+        Route::post('update-voter-card-result/{id}', [UserVoterCUserVoterCardControllerontroller::class, 'updateVoterCardResult']); 
+        Route::delete('delete-voter-card-result/{id}', [UserVoterCardController::class, 'deleteVoterCardResult']); 
+        Route::get('list-voter-card-result', [UserVoterCardController::class, 'listVoterCardResult']); 
         Route::post('upload-voter-card', [DashboardController::class, 'upload_voter_card']); 
         Route::get('get-voter-card-images', [DashboardController::class, 'get_voter_card_images']);  
         Route::get('question-stats', [DashboardController::class, 'getQuestionStats']);

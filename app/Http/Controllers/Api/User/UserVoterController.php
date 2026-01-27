@@ -1407,7 +1407,7 @@ public function getUserSurveyCount(Request $request){
         ]);
         
         if($voterCardImage){
-            Cache::flush();
+            //Cache::flush();
           return response()->json([
             'success' => true,
             'message' => 'Voter card result added successfully',
