@@ -1346,13 +1346,43 @@ public function print_voters(Request $request)
             ], 400);
         }
 
+        $latestSurveySubquery = DB::table('surveys')
+            ->selectRaw('DISTINCT ON (voter_id) 
+                voter_id,
+                id as survey_id,
+                home_phone_code,
+                home_phone,
+                work_phone_code,
+                work_phone,
+                cell_phone_code,
+                cell_phone,
+                voting_for,
+                challenge,
+                created_at as survey_created_at,
+                updated_at as survey_updated_at')
+            ->orderBy('voter_id')
+            ->orderBy('id', 'desc');
+
         // Optimized query: Use leftJoin for better performance
         $query = Voter::query()
             ->select(
                 'voters.*', 
-                'constituencies.name as constituency_name'
+                'constituencies.name as constituency_name',
+                'ls.survey_id',
+                'ls.voter_id',
+                'ls.home_phone_code',
+                'ls.home_phone',
+                'ls.work_phone_code',
+                'ls.work_phone',
+                'ls.cell_phone_code',
+                'ls.cell_phone',
+                'ls.voting_for',
+                'ls.challenge',
+                'ls.survey_created_at',
+                'ls.survey_updated_at'
             )
             ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
+            ->leftJoinSub($latestSurveySubquery, 'ls', 'ls.voter_id', '=', 'voters.id')
             ->whereIn('voters.const', $constituency_ids)
             ->where('voters.exists_in_database', false);
 
@@ -1444,7 +1474,13 @@ public function print_voters(Request $request)
             'dob', 'pobcn', 'pobis', 'pobse', 'house_number', 'aptno', 'blkno', 
             'address', 'newly_registered', 'created_at', 'updated_at', 'is_contacted', 
             'diff_address', 'living_constituency', 'search_vector', 'exists_in_database', 
-            'last_checked_at', 'flagged', 'constituency_name' 
+            'last_checked_at', 'flagged', 'constituency_name', 'challenge'
+        ];
+        
+        $surveyFields = [
+            'survey_id', 'voter_id', 'home_phone_code', 'home_phone', 
+            'work_phone_code', 'work_phone', 'cell_phone_code', 'cell_phone', 
+            'voting_for', 'survey_created_at', 'survey_updated_at', 'challenge'
         ];
 
         // Process with minimal overhead - direct property access, no array conversions
@@ -1453,8 +1489,22 @@ public function print_voters(Request $request)
             // Build voter data - direct assignment (fastest method)
             $voterData = [];
             foreach ($voterFields as $field) {
-                // Use null coalescing for direct access
+                // Use property_exists check only if needed, otherwise direct access
                 $voterData[$field] = $voter->$field ?? null;
+            }
+            
+            // Extract survey - single check, then direct field access
+            if (isset($voter->voter_id) && $voter->voter_id !== null) {
+                $survey = [];
+                foreach ($surveyFields as $field) {
+                    $value = $voter->$field ?? null;
+                    if ($value !== null) {
+                        $survey[$field] = $value;
+                    }
+                }
+                $voterData['survey'] = !empty($survey) ? $survey : null;
+            } else {
+                $voterData['survey'] = null;
             }
             
             $transformed[] = $voterData;
