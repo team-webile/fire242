@@ -1458,6 +1458,7 @@ class VoterController extends Controller
                 cell_phone_code,
                 cell_phone,
                 voting_for,
+                challenge,
                 created_at as survey_created_at,
                 updated_at as survey_updated_at')
             ->orderBy('voter_id')
@@ -1476,7 +1477,9 @@ class VoterController extends Controller
                 'ls.cell_phone_code',
                 'ls.cell_phone',
                 'ls.voting_for',
+                'ls.challenge',
                 'ls.survey_created_at',
+                
                 'ls.survey_updated_at'
             )
             ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
@@ -1630,13 +1633,13 @@ class VoterController extends Controller
             'dob', 'pobcn', 'pobis', 'pobse', 'house_number', 'aptno', 'blkno', 
             'address', 'newly_registered', 'created_at', 'updated_at', 'is_contacted', 
             'diff_address', 'living_constituency', 'search_vector', 'exists_in_database', 
-            'last_checked_at', 'flagged', 'constituency_name'
+            'last_checked_at', 'flagged', 'constituency_name', 'challenge'
         ];
         
         $surveyFields = [
             'survey_id', 'voter_id', 'home_phone_code', 'home_phone', 
             'work_phone_code', 'work_phone', 'cell_phone_code', 'cell_phone', 
-            'voting_for', 'survey_created_at', 'survey_updated_at'
+            'voting_for', 'survey_created_at', 'survey_updated_at', 'challenge'
         ];
 
         // Process with minimal overhead - direct property access, no array conversions
