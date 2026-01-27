@@ -387,6 +387,8 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('voters/suggestions', [App\Http\Controllers\Api\Manager\SurveyController::class, 'getSuggestions']);
         Route::get('surveys/list', [App\Http\Controllers\Api\Manager\SurveyController::class, 'index']);
         Route::get('surveys/{id}', [App\Http\Controllers\Api\Manager\SurveyController::class, 'show']);
+        Route::post('surveys/{id}', [App\Http\Controllers\Api\Manager\SurveyController::class, 'update']);
+        Route::post('surveys', [App\Http\Controllers\Api\Manager\SurveyController::class, 'store']);
         Route::get('voter', [App\Http\Controllers\Api\Manager\SurveyController::class, 'getVoter']);
         Route::get('voter/{voterId}', [App\Http\Controllers\Api\Manager\SurveyController::class, 'getVoter']);
         Route::get('surveyer-search', [App\Http\Controllers\Api\Manager\SurveyController::class, 'surveyer_search']);
