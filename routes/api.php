@@ -284,6 +284,8 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::post('update-voter-card-result/{id}', [UserVoterCardController::class, 'updateVoterCardResult']); 
         Route::delete('delete-voter-card-result/{id}', [UserVoterCardController::class, 'deleteVoterCardResult']); 
         Route::get('list-voter-card-result', [UserVoterCardController::class, 'listVoterCardResult']); 
+        Route::get('get-voter-with-id/{id}', [UserVoterCardController::class, 'getVoterWithId']);  
+
         Route::post('upload-voter-card', [DashboardController::class, 'upload_voter_card']); 
         Route::get('get-voter-card-images', [DashboardController::class, 'get_voter_card_images']);  
         Route::get('question-stats', [DashboardController::class, 'getQuestionStats']);
