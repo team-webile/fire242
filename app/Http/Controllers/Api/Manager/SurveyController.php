@@ -965,6 +965,12 @@ class SurveyController extends Controller
         ]); 
     }
 
+    public function getQuestionsAnswers() 
+    {
+        $questions = Question::with(['answers:id,question_id,answer,position'])->orderBy('position', 'asc')->get();
+        return response()->json(['success' => true, 'questions' => $questions]); 
+    }
+
 
    
 

@@ -392,6 +392,8 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::post('surveys/{id}', [App\Http\Controllers\Api\Manager\SurveyController::class, 'update']);
         Route::post('surveys', [App\Http\Controllers\Api\Manager\SurveyController::class, 'store']);
         Route::get('voter', [App\Http\Controllers\Api\Manager\SurveyController::class, 'getVoter']);
+        Route::get('questions-answers', [App\Http\Controllers\Api\Manager\SurveyController::class, 'getQuestionsAnswers']); 
+
         Route::get('voter/{voterId}', [App\Http\Controllers\Api\Manager\SurveyController::class, 'getVoter']);
         Route::get('surveyer-search', [App\Http\Controllers\Api\Manager\SurveyController::class, 'surveyer_search']);
  
