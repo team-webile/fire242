@@ -21,6 +21,9 @@ class VoterController extends Controller
     
     public function getVotersInSurveyDetails(Request $request, $id)
     { 
+        // Increase memory limit for large exports
+        ini_set('memory_limit', '512M');
+        
         // Check admin authorization
         if (!auth()->check() || auth()->user()->role->name !== 'Admin') { 
             return response()->json([
@@ -137,6 +140,9 @@ class VoterController extends Controller
 
    public function getVotersInSurvey(Request $request)
    {
+       // Increase memory limit for large exports
+       ini_set('memory_limit', '512M');
+       
        // Check admin authorization
         if (!auth()->check() || auth()->user()->role->name !== 'Admin') {
             return response()->json([
@@ -211,7 +217,7 @@ class VoterController extends Controller
         ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
         ->joinSub($latestSurveySubquery, 'ls', 'ls.voter_id', '=', 'voters.id')
         ->orderBy('ls.created_at', 'desc');
-        dd($query->get());
+        
 
 
      
@@ -360,6 +366,9 @@ class VoterController extends Controller
    }
    public function getDiedVotersInSurvey(Request $request)
    {
+       // Increase memory limit for large exports
+       ini_set('memory_limit', '512M');
+       
        // Check admin authorization
        if (!auth()->check() || auth()->user()->role->name !== 'Admin') {
            return response()->json([
@@ -545,6 +554,9 @@ class VoterController extends Controller
 
    public function getVotersNotInSurveyExport(Request $request)
    {
+       // Increase memory limit for large exports
+       ini_set('memory_limit', '512M');
+       
        // Check admin authorization
        if (!auth()->check() || auth()->user()->role->name !== 'Admin') {
            return response()->json([
@@ -681,6 +693,9 @@ class VoterController extends Controller
 
    public function getUserSurveys(Request $request, $id)
    {
+        // Increase memory limit for large exports
+        ini_set('memory_limit', '512M');
+        
         if (!auth()->check() || auth()->user()->role->name !== 'Admin') {
             return response()->json([
                 'success' => false,
@@ -818,6 +833,8 @@ class VoterController extends Controller
 
    public function getVotersDiffAddress(Request $request)
    {
+       // Increase memory limit for large exports
+       ini_set('memory_limit', '512M');
        
     if (!auth()->check() || auth()->user()->role->name !== 'Admin') {
         return response()->json([
