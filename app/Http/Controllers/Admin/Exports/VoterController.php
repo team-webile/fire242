@@ -186,7 +186,7 @@ class VoterController extends Controller
             challenge')
         ->orderBy('voter_id')
         ->orderBy('id', 'desc');
-
+        dd($latestSurveySubquery->get());
     // OPTIMIZED: Use leftJoinSub instead of raw join
     // This is more efficient and allows better query optimization
       $query = Voter::query()
