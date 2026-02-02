@@ -141,7 +141,7 @@ class VoterController extends Controller
    public function getVotersInSurvey(Request $request)
    {
        // Increase memory limit for large exports
-       ini_set('memory_limit', '512M');
+       ini_set('memory_limit', '1024M');
        
        // Check admin authorization
         if (!auth()->check() || auth()->user()->role->name !== 'Admin') {
