@@ -360,12 +360,12 @@ Route::middleware([ 'jwt.auth'])->group(function () {
     Route::middleware(['role:Manager'])->prefix('manager')->group(function () {
 
         
-
+        
         
         Route::get('get-constituencies/reports', [ManagerVoterCardController::class, 'getConstituencyReports']); 
         Route::get('getConstituencyReport1', [ManagerVoterCardController::class, 'getConstituencyReport1']);
         Route::get('getConstituencyReport2', [ManagerVoterCardController::class, 'getConstituencyReport2']);
-
+        Route::get('getConstituencyReport4', [ManagerVoterCardController::class, 'getConstituencyReport4']);
 
         Route::get('voter-cards-fnm', [ManagerVoterCardController::class, 'getVoterCard_FNM']);
         Route::get('voter-cards-plp', [ManagerVoterCardController::class, 'getVoterCard_PLP']);
