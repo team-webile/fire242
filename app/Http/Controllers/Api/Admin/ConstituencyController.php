@@ -336,6 +336,126 @@ class ConstituencyController extends Controller
     // }
 
 
+
+     public function getConstituencyReport4(Request $request)
+    {
+        // Build the query with joins - starting from voters to match index function count
+        $query = DB::table('voters as v')
+            ->leftJoin('constituencies as c', 'v.const', '=', 'c.id')
+            ->leftJoin('surveys', function($join) {
+                $join->on('surveys.voter_id', '=', 'v.id')
+                     ->whereRaw('surveys.id = (SELECT MAX(s2.id) FROM surveys as s2 WHERE s2.voter_id = v.id)');
+            })
+            ->leftJoin('voter_cards_images as vci', 'vci.reg_no', '=', 'v.voter')
+            ->whereNotNull('vci.reg_no');
+        // Get filter parameters
+        $existsInDatabase = $request->input('exists_in_database');
+        $underAge25 = $request->input('under_age_25');
+        $surname = $request->input('surname');
+        $firstName = $request->input('first_name');
+        $secondName = $request->input('second_name');
+        $voterId = $request->input('voter');
+        $houseNumber = $request->input('house_number'); 
+        $address = $request->input('address');
+        $pobse = $request->input('pobse');
+        $pobis = $request->input('pobis');
+        $pobcn = $request->input('pobcn');
+
+        // Apply filters matching the index function
+        if ($request->has('constituency_id') && !empty($request->constituency_id)) {
+            $query->where('v.const', $request->constituency_id);
+        }
+        if ($request->has('constituency_name') && !empty($request->constituency_name)) {
+            $query->whereRaw('LOWER(c.name) LIKE ?', ['%' . strtolower($request->constituency_name) . '%']); 
+        }
+        if ($request->has('polling') && !empty($request->polling)) {
+            $query->where('v.polling', $request->polling);
+        }
+        
+        // exists_in_database filter
+        if ($existsInDatabase === 'true' || $existsInDatabase === true) {
+            $query->where('v.exists_in_database', true);
+        } elseif ($existsInDatabase === 'false' || $existsInDatabase === false) {
+            $query->where('v.exists_in_database', false);
+        }
+        // under_age_25 filter
+        if ($underAge25 === 'yes') {
+            $query->whereRaw('EXTRACT(YEAR FROM AGE(CURRENT_DATE, v.dob)) < 25');
+        }
+        // Name filters
+        if (!empty($surname)) {
+            $query->whereRaw('LOWER(v.surname) LIKE ?', ['%' . strtolower($surname) . '%']);
+        }
+        if (!empty($firstName)) {
+            $query->whereRaw('LOWER(v.first_name) LIKE ?', ['%' . strtolower($firstName) . '%']);
+        }
+        if (!empty($secondName)) {
+            $query->whereRaw('LOWER(v.second_name) LIKE ?', ['%' . strtolower($secondName) . '%']);
+        }
+        // Voter ID filter
+        if (!empty($voterId) && is_numeric($voterId)) {
+            $query->where('v.voter', $voterId);
+        }
+        // Address filters
+        $query->where(function($q) use ($houseNumber, $address, $pobse, $pobis, $pobcn) {
+            if ($houseNumber !== null && $houseNumber !== '') {
+                $q->whereRaw('LOWER(v.house_number) = ?', [strtolower($houseNumber)]);
+            }
+            if ($address !== null && $address !== '') {
+                $q->whereRaw('LOWER(v.address) = ?', [strtolower($address)]);
+            }
+            if ($pobse !== null && $pobse !== '') {
+                $q->whereRaw('LOWER(v.pobse) = ?', [strtolower($pobse)]);
+            }
+            if ($pobis !== null && $pobis !== '') {
+                $q->whereRaw('LOWER(v.pobis) = ?', [strtolower($pobis)]);
+            }
+            if ($pobcn !== null && $pobcn !== '') {
+                $q->whereRaw('LOWER(v.pobcn) = ?', [strtolower($pobcn)]);
+            }
+        });
+
+        // Select aggregated data by polling division
+        $results = $query->select(
+            'v.polling as polling_division',
+            // Use DISTINCT vci.reg_no for UNIQUE voter id count in images (not vci.id)
+            DB::raw("COUNT(DISTINCT CASE WHEN vci.exit_poll = 'fnm' THEN vci.reg_no END) as fnm_count"),
+            DB::raw("COUNT(DISTINCT CASE WHEN vci.exit_poll = 'plp' THEN vci.reg_no END) as plp_count"),
+            DB::raw("COUNT(DISTINCT CASE WHEN vci.exit_poll = 'dna' THEN vci.reg_no END) as dna_count"),
+            DB::raw("COUNT(DISTINCT CASE WHEN vci.exit_poll NOT IN ('fnm', 'plp', 'dna') AND vci.exit_poll IS NOT NULL THEN vci.reg_no END) as other_count"),
+            // For no_vote_count, those voters with NO voter card image at all
+            DB::raw("COUNT(DISTINCT CASE WHEN vci.reg_no IS NULL THEN v.id END) as no_vote_count"),
+            // All voters in polling division
+            DB::raw("COUNT(DISTINCT v.id) as total_count"),
+
+            // Percentages (use reg_no counts in numerator)
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN vci.exit_poll = 'fnm' THEN vci.reg_no END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as fnm_percentage"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN vci.exit_poll = 'plp' THEN vci.reg_no END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as plp_percentage"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN vci.exit_poll = 'dna' THEN vci.reg_no END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as dna_percentage"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN vci.exit_poll NOT IN ('fnm', 'plp', 'dna') AND vci.exit_poll IS NOT NULL THEN vci.reg_no END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as other_percentage"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN vci.reg_no IS NULL THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as no_vote_percentage")
+        )
+        ->groupBy('v.polling')
+        ->orderBy('v.polling', 'asc')
+        ->paginate($request->input('per_page', 20));
+
+        // Transform: add total_party_count (sum of fnm, plp, dna, other counts) to each item
+        $results->getCollection()->transform(function ($item) {
+            $item->total_party_count =
+                $item->fnm_count
+                + $item->plp_count
+                + $item->dna_count
+                + $item->other_count;
+            return $item;
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Voter cards report retrieved successfully',
+            'data' => $results
+        ]);
+    }
+    
     public function getConstituencyReports(Request $request)   
     { 
          

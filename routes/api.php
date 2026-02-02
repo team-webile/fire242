@@ -79,6 +79,7 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('get-constituencies/reports', [ConstituencyController::class, 'getConstituencyReports']); 
         Route::get('getConstituencyReport1', [ConstituencyController::class, 'getConstituencyReport1']);
         Route::get('getConstituencyReport2', [ConstituencyController::class, 'getConstituencyReport2']);
+        Route::get('getConstituencyReport4', [ConstituencyController::class, 'getConstituencyReport4']);
         Route::get('voter-cards-report', [ConstituencyController::class, 'voterCardsReport']);
 
 
