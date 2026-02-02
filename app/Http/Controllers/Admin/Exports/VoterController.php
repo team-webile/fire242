@@ -186,7 +186,7 @@ class VoterController extends Controller
             challenge')
         ->orderBy('voter_id')
         ->orderBy('id', 'desc');
-        dd($latestSurveySubquery);
+       
     // OPTIMIZED: Use leftJoinSub instead of raw join
     // This is more efficient and allows better query optimization
       $query = Voter::query()
@@ -211,6 +211,7 @@ class VoterController extends Controller
         ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
         ->joinSub($latestSurveySubquery, 'ls', 'ls.voter_id', '=', 'voters.id')
         ->orderBy('ls.created_at', 'desc');
+        dd($query->get());
 
 
      
