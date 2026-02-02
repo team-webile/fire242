@@ -1133,7 +1133,7 @@ class ManagerVoterCardController extends Controller
                   // Only voter_cards with a created_at timestamp for bucketing
                   ->whereNotNull('vci.created_at')
                   ->whereIn('voters.const', explode(',', auth()->user()->constituency_id));
-  
+                  dd($query->get(),auth()->user()->constituency_id);
               // Pull out filters (same as before)
               $const = $request->input('const');
               $surname = $request->input('surname');
