@@ -1112,11 +1112,7 @@ class ManagerVoterCardController extends Controller
 
       public function electionDayGraph(Request $request)
       { 
-          // Only Admin
-          if (!auth()->check() || auth()->user()->role->name !== 'Admin') {
-              return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-          }
-  
+           
           // Cache graph per filter set to reduce DB load; 5-minute TTL
           $cacheKey = 'election_day_graph_' . md5(json_encode($request->all()));
           $payload = Cache::rememberForever($cacheKey, function () use ($request) {
