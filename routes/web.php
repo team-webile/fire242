@@ -56,6 +56,7 @@ Route::middleware('jwt.auth')->group(function () {
         Route::get('get-constituencies/reports/export', [QuestionController::class, 'getConstituencyReports']);
         Route::get('getConstituencyReport1/export', [QuestionController::class, 'getConstituencyReport1']); 
         Route::get('getConstituencyReport2/export', [QuestionController::class, 'getConstituencyReport2']);
+        Route::get('getConstituencyReport4/export', [QuestionController::class, 'getConstituencyReport4']);
         Route::get('voter-cards-report/export', [QuestionController::class, 'voterCardsReport']);
          
         Route::get('dashboard-stats/total/{type}', [DashboardStatsController::class, 'statsList']); 
@@ -94,7 +95,8 @@ Route::middleware('jwt.auth')->group(function () {
         Route::get('get-constituencies/reports/export', [ManagerUsersController::class, 'getConstituencyReports']); 
         Route::get('getConstituencyReport1/export', [ManagerUsersController::class, 'getConstituencyReport1']); 
         Route::get('getConstituencyReport2/export', [ManagerUsersController::class, 'getConstituencyReport2']);
-
+        Route::get('getConstituencyReport4/export', [ManagerUsersController::class, 'getConstituencyReport4']);
+       
          
         Route::get('stats-list', [ManagerUsersController::class, 'statsList']);
         Route::get('parties/export', [ExportPartyController::class, 'export']); 
