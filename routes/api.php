@@ -128,7 +128,7 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('died-voters-in-survey', [VoterController::class, 'getDiedVotersInSurvey']);
         Route::get('voters-diff-address', [VoterController::class, 'getVotersDiffAddress']); 
         Route::get('voters-not-in-survey', [VoterController::class, 'getVotersNotInSurvey']);
-        Route::get('voters-history/{id}', [VoterController::class, 'getVotersHistory']);
+        Route::get('voters-history/{id}', [VoterController::class, 'getVotersHistory']); 
         Route::get('duplicate-voters', [VoterController::class, 'duplicateVoters']);
         Route::get('birthday-voters', [VoterBirthdayController::class, 'birthdayVoters']);
         Route::get('birthday-voters-contacted/{id}', [VoterBirthdayController::class, 'birthdayVotersContacted']);
