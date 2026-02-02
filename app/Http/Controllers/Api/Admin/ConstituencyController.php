@@ -350,27 +350,25 @@ class ConstituencyController extends Controller
         $plpName = $parties->get('PLP')->name ?? 'Progressive Liberal Party';
         $coiName = $parties->get('COI')->name ?? 'Coalition of Independents';
 
-        // EXACT same subquery as getVotersInSurvey - DISTINCT ON ordered by voter_id, id DESC
-        $latestSurveySubquery = DB::table('surveys')
-            ->selectRaw('DISTINCT ON (voter_id) 
-                voter_id,
-                id,
-                created_at,
-                user_id,
-                located,
-                voting_decision,
-                voting_for,
-                is_died,
-                died_date,
-                challenge')
-            ->orderBy('voter_id')
-            ->orderBy('id', 'desc');
-
-        // Build query EXACTLY like getVotersInSurvey - using INNER JOIN (joinSub)
+        // Build query EXACTLY like getVotersInSurvey - using INNER JOIN with raw subquery
         // This ensures only voters WITH surveys are counted (same as getVotersInSurvey)
         $query = DB::table('voters as v')
             ->leftJoin('constituencies as c', 'v.const', '=', 'c.id')
-            ->joinSub($latestSurveySubquery, 'ls', 'ls.voter_id', '=', 'v.id');  // INNER JOIN - only voters with surveys
+            ->join(DB::raw("(
+                SELECT DISTINCT ON (voter_id) 
+                    voter_id,
+                    id,
+                    created_at,
+                    user_id,
+                    located,
+                    voting_decision,
+                    voting_for,
+                    is_died,
+                    died_date,
+                    challenge
+                FROM surveys 
+                ORDER BY voter_id, id DESC
+            ) as ls"), 'ls.voter_id', '=', 'v.id');  // INNER JOIN - only voters with surveys
 
         // Get ALL filter parameters - SAME as getVotersInSurvey
         $existsInDatabase = $request->input('exists_in_database');
@@ -546,10 +544,71 @@ class ConstituencyController extends Controller
             return $item;
         });
 
+        // Calculate grand totals across ALL polling divisions (not just current page)
+        // Clone the base query to get totals without pagination
+        $totalsQuery = DB::table('voters as v')
+            ->leftJoin('constituencies as c', 'v.const', '=', 'c.id')
+            ->join(DB::raw("(
+                SELECT DISTINCT ON (voter_id) 
+                    voter_id,
+                    voting_for
+                FROM surveys 
+                ORDER BY voter_id, id DESC
+            ) as ls"), 'ls.voter_id', '=', 'v.id');
+
+        // Apply same filters to totals query
+        $existsInDatabase = $request->input('exists_in_database');
+        $constituencyId = $request->input('const') ?? $request->input('constituency_id');
+        $constituencyName = $request->input('constituency_name');
+        $voting_for = $request->input('voting_for');
+
+        if ($existsInDatabase === 'true') {
+            $totalsQuery->where('v.exists_in_database', true);
+        } elseif ($existsInDatabase === 'false') {
+            $totalsQuery->where('v.exists_in_database', false);
+        }
+
+        if (!empty($constituencyId) && is_numeric($constituencyId)) {
+            $totalsQuery->where('v.const', $constituencyId);
+        }
+
+        if (!empty($constituencyName)) {
+            $totalsQuery->whereRaw('LOWER(c.name) LIKE ?', ['%' . strtolower($constituencyName) . '%']);
+        }
+
+        if ($voting_for !== null && $voting_for !== '') {
+            if (is_numeric($voting_for)) {
+                $get_party = DB::table('parties')->where('id', $voting_for)->first();
+            } else {
+                $get_party = DB::table('parties')->whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first();
+            }
+            if ($get_party) {
+                $totalsQuery->where('ls.voting_for', $get_party->name);
+            }
+        }
+
+        // Get grand totals
+        $grandTotals = $totalsQuery->selectRaw("
+            COUNT(DISTINCT CASE WHEN ls.voting_for = '$fnmName' THEN v.id END) as fnm_total,
+            COUNT(DISTINCT CASE WHEN ls.voting_for = '$plpName' THEN v.id END) as plp_total,
+            COUNT(DISTINCT CASE WHEN ls.voting_for = '$coiName' THEN v.id END) as coi_total,
+            COUNT(DISTINCT CASE WHEN ls.voting_for IS NOT NULL AND ls.voting_for NOT IN ('$fnmName', '$plpName', '$coiName') THEN v.id END) as other_total,
+            COUNT(DISTINCT CASE WHEN ls.voting_for IS NULL THEN v.id END) as no_vote_total,
+            COUNT(DISTINCT v.id) as grand_total
+        ")->first();
+
         return response()->json([
             'success' => true,
             'message' => 'Voter cards report retrieved successfully',
-            'data' => $results
+            'data' => $results,
+            'grand_totals' => [
+                'fnm_total' => (int)$grandTotals->fnm_total,
+                'plp_total' => (int)$grandTotals->plp_total,
+                'coi_total' => (int)$grandTotals->coi_total,
+                'other_total' => (int)$grandTotals->other_total,
+                'no_vote_total' => (int)$grandTotals->no_vote_total,
+                'grand_total' => (int)$grandTotals->grand_total
+            ]
         ]);
     }
     
