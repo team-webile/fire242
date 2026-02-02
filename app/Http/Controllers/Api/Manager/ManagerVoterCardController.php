@@ -1291,16 +1291,32 @@ class ManagerVoterCardController extends Controller
                   ];
               }
   
-              $total = $running;
-  
-              // Y-axis: From 0 up to $totalVoters, 12 ticks evenly spaced
+            $total = $running;
+
+              // Y-axis: Generate sensible tick values without duplicates
               $tickCount = 12;
-              $step = $tickCount > 1 ? ($totalVoters / ($tickCount - 1)) : $totalVoters;
               $yAxis = [];
-              for ($i = 0; $i < $tickCount; $i++) {
-                  $yAxis[] = (int)round($i * $step);
+              
+              if ($totalVoters == 0) {
+                  // No data - return default scale 0 to 100
+                  for ($i = 0; $i < $tickCount; $i++) {
+                      $yAxis[] = (int)round($i * (100 / ($tickCount - 1)));
+                  }
+              } elseif ($totalVoters <= $tickCount) {
+                  // Small number of voters - return unique values from 0 to totalVoters
+                  for ($i = 0; $i <= $totalVoters; $i++) {
+                      $yAxis[] = $i;
+                  }
+              } else {
+                  // Normal case - evenly spaced ticks
+                  $step = $totalVoters / ($tickCount - 1);
+                  for ($i = 0; $i < $tickCount; $i++) {
+                      $yAxis[] = (int)round($i * $step);
+                  }
+                  // Remove any duplicates and re-index
+                  $yAxis = array_values(array_unique($yAxis));
               }
-  
+
               return [
                   'success' => true,
                   'total_voted' => $total,
