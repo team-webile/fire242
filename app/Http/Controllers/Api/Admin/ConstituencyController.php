@@ -341,7 +341,7 @@ class ConstituencyController extends Controller
     {
         // Get party names from database - EXACT same approach as getVotersInSurvey
         $parties = DB::table('parties')
-            ->where('status', 'active')
+            ->where('status', 'active') 
             ->orderBy('position')
             ->get()
             ->keyBy('short_name');
