@@ -806,7 +806,6 @@ class ManagerVoterCardController extends Controller
     public function getConstituencyReport4(Request $request)
     {
 
-        
           // Get party names using EXACT same method as getVotersInSurvey
           // getVotersInSurvey uses: Party::whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first()
           $constituencyIds = explode(',', auth()->user()->constituency_id);
