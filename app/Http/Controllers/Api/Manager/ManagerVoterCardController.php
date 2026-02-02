@@ -814,7 +814,7 @@ class ManagerVoterCardController extends Controller
             'updated_at' => now(),
         ]);
 
-       
+       dd(DB::table('manager_pages')->get()); 
           // Get party names using EXACT same method as getVotersInSurvey
           // getVotersInSurvey uses: Party::whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first()
           $constituencyIds = explode(',', auth()->user()->constituency_id);
