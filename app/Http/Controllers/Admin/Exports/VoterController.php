@@ -1169,7 +1169,7 @@ class VoterController extends Controller
        $columns = array_map(function($column) {
         return strtolower(urldecode(trim($column)));
     }, explode(',', $_GET['columns']));
-    
+    dd($voters,$columns); 
     $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
     return Excel::download(new VotersExport($voters, $request, $columns), 'Voters Diff Address_' . $timestamp . '.xlsx');  
     
