@@ -982,7 +982,7 @@ class ManagerVoterCardController extends Controller
           // Select aggregated data by polling division
           // Using exact party names from database for consistent matching
           $results = $query->select(
-              'v.polling as polling_division',
+              'v.polling as polling_division', 
               // Count by voting_for from latest survey per voter - using DB party names
               DB::raw("COUNT(DISTINCT CASE WHEN ls.voting_for = '$fnmName' THEN v.id END) as fnm_count"),
               DB::raw("COUNT(DISTINCT CASE WHEN ls.voting_for = '$plpName' THEN v.id END) as plp_count"),
