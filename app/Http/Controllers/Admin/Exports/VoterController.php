@@ -186,7 +186,7 @@ class VoterController extends Controller
             challenge')
         ->orderBy('voter_id')
         ->orderBy('id', 'desc');
-        dd($latestSurveySubquery->get());
+       
     // OPTIMIZED: Use leftJoinSub instead of raw join
     // This is more efficient and allows better query optimization
       $query = Voter::query()
@@ -347,7 +347,7 @@ class VoterController extends Controller
         }, explode(',', $_GET['columns']));
         $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
     
-        
+        dd($voters);
         
         return Excel::download(new SurveyVotersExport($voters, $request, $columns), 'Voters In Survey_' . $timestamp . '.xlsx');  
 
