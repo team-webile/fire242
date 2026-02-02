@@ -339,16 +339,16 @@ class ConstituencyController extends Controller
 
      public function getConstituencyReport4(Request $request)
     {
-        // Get party names from database - EXACT same approach as getVotersInSurvey
-        $parties = DB::table('parties')
-            ->where('status', 'active') 
-            ->orderBy('position')
-            ->get()
-            ->keyBy('short_name');
+        // Get party names using EXACT same method as getVotersInSurvey
+        // getVotersInSurvey uses: Party::whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first()
+        $fnmParty = DB::table('parties')->whereRaw('LOWER(name) = ?', ['free national movement'])->first();
+        $plpParty = DB::table('parties')->whereRaw('LOWER(name) = ?', ['progressive liberal party'])->first();
+        $coiParty = DB::table('parties')->whereRaw('LOWER(name) = ?', ['coalition of independents'])->first();
         
-        $fnmName = $parties->get('FNM')->name ?? 'Free National Movement';
-        $plpName = $parties->get('PLP')->name ?? 'Progressive Liberal Party';
-        $coiName = $parties->get('COI')->name ?? 'Coalition of Independents';
+        // Use the exact party name from database (same as getVotersInSurvey)
+        $fnmName = $fnmParty ? $fnmParty->name : 'Free National Movement';
+        $plpName = $plpParty ? $plpParty->name : 'Progressive Liberal Party';
+        $coiName = $coiParty ? $coiParty->name : 'Coalition of Independents';
 
         // Build query EXACTLY like getVotersInSurvey - using INNER JOIN with raw subquery
         // This ensures only voters WITH surveys are counted (same as getVotersInSurvey)
@@ -597,6 +597,28 @@ class ConstituencyController extends Controller
             COUNT(DISTINCT v.id) as grand_total
         ")->first();
 
+        // DEBUG: Get verification count using EXACT same query as getVotersInSurvey
+        // This should match the total from getVotersInSurvey API
+        $verificationQuery = DB::table('voters')
+            ->select('voters.id')
+            ->join(DB::raw("(
+                SELECT DISTINCT ON (voter_id) voter_id, voting_for
+                FROM surveys 
+                ORDER BY voter_id, id DESC
+            ) as ls"), 'ls.voter_id', '=', 'voters.id');
+        
+        // Apply FNM filter for verification (same as getVotersInSurvey)
+        $verificationQuery->where('ls.voting_for', $fnmName);
+        $fnmVerificationCount = $verificationQuery->count();
+
+        // Also get all distinct voting_for values to debug
+        $votingForValues = DB::table('surveys')
+            ->select('voting_for')
+            ->distinct()
+            ->whereNotNull('voting_for')
+            ->pluck('voting_for')
+            ->toArray();
+
         return response()->json([
             'success' => true,
             'message' => 'Voter cards report retrieved successfully',
@@ -608,6 +630,12 @@ class ConstituencyController extends Controller
                 'other_total' => (int)$grandTotals->other_total,
                 'no_vote_total' => (int)$grandTotals->no_vote_total,
                 'grand_total' => (int)$grandTotals->grand_total
+            ],
+            'debug' => [
+                'fnm_name_used' => $fnmName,
+                'fnm_verification_count' => $fnmVerificationCount,
+                'distinct_voting_for_values' => $votingForValues,
+                'message' => 'fnm_verification_count should equal 15739 (getVotersInSurvey FNM count)'
             ]
         ]);
     }
