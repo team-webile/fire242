@@ -967,13 +967,13 @@ class VoterController extends Controller
 
 
 
-   public function nationalRegisteryList(Request $request) 
+   public function nationalRegisteryList(Request $request)  
    {   
         
     
        $query = Voter::with(['constituency','user','living_constituency','surveyer_constituency'])
            ->where('voters.is_national', 1); 
-           dd($query->get()); 
+            
 
        $searchableFields = [
            'first_name' => 'First Name',
