@@ -339,30 +339,40 @@ class ConstituencyController extends Controller
 
      public function getConstituencyReport4(Request $request)
     {
-        // Get party names from database for consistent matching with getVotersInSurvey
+        // Get party names from database - EXACT same approach as getVotersInSurvey
         $parties = DB::table('parties')
             ->where('status', 'active')
             ->orderBy('position')
             ->get()
             ->keyBy('short_name');
         
-        // Get exact party names from database (same approach as getVotersInSurvey)
         $fnmName = $parties->get('FNM')->name ?? 'Free National Movement';
         $plpName = $parties->get('PLP')->name ?? 'Progressive Liberal Party';
-        $dnaName = $parties->get('DNA')->name ?? 'Democratic National Alliance';
         $coiName = $parties->get('COI')->name ?? 'Coalition of Independents';
 
-        // Build the query with joins - using DISTINCT ON for latest survey per voter (efficient for PostgreSQL)
-        // Using same subquery pattern as getVotersInSurvey for consistency
+        // EXACT same subquery as getVotersInSurvey - DISTINCT ON ordered by voter_id, id DESC
+        $latestSurveySubquery = DB::table('surveys')
+            ->selectRaw('DISTINCT ON (voter_id) 
+                voter_id,
+                id,
+                created_at,
+                user_id,
+                located,
+                voting_decision,
+                voting_for,
+                is_died,
+                died_date,
+                challenge')
+            ->orderBy('voter_id')
+            ->orderBy('id', 'desc');
+
+        // Build query EXACTLY like getVotersInSurvey - using INNER JOIN (joinSub)
+        // This ensures only voters WITH surveys are counted (same as getVotersInSurvey)
         $query = DB::table('voters as v')
             ->leftJoin('constituencies as c', 'v.const', '=', 'c.id')
-            ->leftJoin(DB::raw("(
-                SELECT DISTINCT ON (voter_id) id, voter_id, voting_for, created_at
-                FROM surveys 
-                ORDER BY voter_id, id DESC
-            ) as s"), 'v.id', '=', 's.voter_id');
+            ->joinSub($latestSurveySubquery, 'ls', 'ls.voter_id', '=', 'v.id');  // INNER JOIN - only voters with surveys
 
-        // Get filter parameters
+        // Get ALL filter parameters - SAME as getVotersInSurvey
         $existsInDatabase = $request->input('exists_in_database');
         $underAge25 = $request->input('under_age_25');
         $surname = $request->input('surname');
@@ -374,29 +384,89 @@ class ConstituencyController extends Controller
         $pobse = $request->input('pobse');
         $pobis = $request->input('pobis');
         $pobcn = $request->input('pobcn');
+        $constituencyId = $request->input('const') ?? $request->input('constituency_id');
+        $constituencyName = $request->input('constituency_name');
+        $polling = $request->input('polling');
+        $located = $request->input('located');
+        $voting_decision = $request->input('voting_decision');
+        $voting_for = $request->input('voting_for');
+        $is_died = $request->input('is_died');
+        $died_date = $request->input('died_date');
+        $challenge = $request->input('challenge');
+        $user_id = $request->input('user_id');
+        $start_date = $request->input('start_date');
+        $end_date = $request->input('end_date');
 
-        // Apply filters matching the index function
-        if ($request->has('constituency_id') && !empty($request->constituency_id)) {
-            $query->where('v.const', $request->constituency_id);
+        // Apply challenge filter - SAME as getVotersInSurvey
+        if ($challenge === 'true') {
+            $query->whereRaw('ls.challenge IS TRUE');
+        } elseif ($challenge === 'false') {
+            $query->whereRaw('ls.challenge IS FALSE');
         }
-        if ($request->has('constituency_name') && !empty($request->constituency_name)) {
-            $query->whereRaw('LOWER(c.name) LIKE ?', ['%' . strtolower($request->constituency_name) . '%']); 
-        }
-        if ($request->has('polling') && !empty($request->polling)) {
-            $query->where('v.polling', $request->polling);
-        }
-        
-        // exists_in_database filter
-        if ($existsInDatabase === 'true' || $existsInDatabase === true) {
+
+        // Apply exists_in_database filter - SAME as getVotersInSurvey
+        if ($existsInDatabase === 'true') {
             $query->where('v.exists_in_database', true);
-        } elseif ($existsInDatabase === 'false' || $existsInDatabase === false) {
+        } elseif ($existsInDatabase === 'false') {
             $query->where('v.exists_in_database', false);
         }
-        // under_age_25 filter
+
+        // Apply voting_for filter - SAME logic as getVotersInSurvey
+        if ($voting_for !== null && $voting_for !== '') {
+            if (is_numeric($voting_for)) {
+                $get_party = DB::table('parties')->where('id', $voting_for)->first();
+            } else {
+                $get_party = DB::table('parties')->whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first();
+            }
+            if ($get_party) {
+                $query->where('ls.voting_for', $get_party->name);
+            }
+        }
+
+        // Apply is_died filter - SAME as getVotersInSurvey
+        if ($is_died !== null && $is_died !== '') {
+            $query->where('ls.is_died', $is_died);
+        }
+
+        // Apply died_date filter - SAME as getVotersInSurvey
+        if ($died_date !== null && $died_date !== '') {
+            $query->where('ls.died_date', $died_date);
+        }
+
+        // Apply voting_decision filter - SAME as getVotersInSurvey
+        if (!empty($voting_decision)) {
+            $query->where('ls.voting_decision', $voting_decision);
+        }
+
+        // Apply located filter - SAME as getVotersInSurvey
+        if (!empty($located)) {
+            $query->whereRaw('LOWER(ls.located) = ?', [strtolower($located)]);
+        }
+
+        // Apply polling filter - SAME as getVotersInSurvey
+        if (!empty($polling) && is_numeric($polling)) {
+            $query->where('v.polling', $polling);
+        }
+
+        // Apply under_age_25 filter - SAME as getVotersInSurvey
         if ($underAge25 === 'yes') {
             $query->whereRaw('EXTRACT(YEAR FROM AGE(CURRENT_DATE, v.dob)) < 25');
         }
-        // Name filters
+
+        // Apply user_id filter - SAME as getVotersInSurvey
+        if (!empty($user_id)) {
+            $query->where('ls.user_id', $user_id);
+        }
+
+        // Apply date range filters - SAME as getVotersInSurvey
+        if (!empty($start_date)) {
+            $query->where('ls.created_at', '>=', $start_date . ' 00:00:00');
+        }
+        if (!empty($end_date)) {
+            $query->where('ls.created_at', '<=', $end_date . ' 23:59:59');
+        }
+
+        // Apply name filters - SAME as getVotersInSurvey
         if (!empty($surname)) {
             $query->whereRaw('LOWER(v.surname) LIKE ?', ['%' . strtolower($surname) . '%']);
         }
@@ -406,47 +476,61 @@ class ConstituencyController extends Controller
         if (!empty($secondName)) {
             $query->whereRaw('LOWER(v.second_name) LIKE ?', ['%' . strtolower($secondName) . '%']);
         }
-        // Voter ID filter
+
+        // Apply address filters - SAME as getVotersInSurvey
+        $query->where(function($q) use ($houseNumber, $address, $pobse, $pobis, $pobcn) {
+            if ($houseNumber !== null && $houseNumber !== '') {
+                $q->whereRaw('LOWER(v.house_number) = ?', [strtolower($houseNumber)]);
+            }
+            if ($address !== null && $address !== '') {
+                $q->whereRaw('LOWER(v.address) = ?', [strtolower($address)]);
+            }
+            if ($pobse !== null && $pobse !== '') {
+                $q->whereRaw('LOWER(v.pobse) = ?', [strtolower($pobse)]);
+            }
+            if ($pobis !== null && $pobis !== '') {
+                $q->whereRaw('LOWER(v.pobis) = ?', [strtolower($pobis)]);
+            }
+            if ($pobcn !== null && $pobcn !== '') {
+                $q->whereRaw('LOWER(v.pobcn) = ?', [strtolower($pobcn)]);
+            }
+        });
+
+        // Apply voter ID filter - SAME as getVotersInSurvey
         if (!empty($voterId) && is_numeric($voterId)) {
             $query->where('v.voter', $voterId);
         }
-        // Address filters
-        if ($houseNumber !== null && $houseNumber !== '') {
-            $query->whereRaw('LOWER(v.house_number) = ?', [strtolower($houseNumber)]);
-        }
-        if ($address !== null && $address !== '') {
-            $query->whereRaw('LOWER(v.address) = ?', [strtolower($address)]);
-        }
-        if ($pobse !== null && $pobse !== '') {
-            $query->whereRaw('LOWER(v.pobse) = ?', [strtolower($pobse)]);
-        }
-        if ($pobis !== null && $pobis !== '') {
-            $query->whereRaw('LOWER(v.pobis) = ?', [strtolower($pobis)]);
-        }
-        if ($pobcn !== null && $pobcn !== '') {
-            $query->whereRaw('LOWER(v.pobcn) = ?', [strtolower($pobcn)]);
+
+        // Apply constituency name filter - SAME as getVotersInSurvey
+        if (!empty($constituencyName)) {
+            $query->whereRaw('LOWER(c.name) LIKE ?', ['%' . strtolower($constituencyName) . '%']);
         }
 
-        // Select aggregated data by polling division using surveys.voting_for
+        // Apply constituency ID filter - SAME as getVotersInSurvey
+        if (!empty($constituencyId) && is_numeric($constituencyId)) {
+            $query->where('v.const', $constituencyId);
+        }
+
+        // Select aggregated data by polling division
         // Using exact party names from database for consistent matching
         $results = $query->select(
             'v.polling as polling_division',
             // Count by voting_for from latest survey per voter - using DB party names
-            DB::raw("COUNT(DISTINCT CASE WHEN s.voting_for = '$fnmName' THEN v.id END) as fnm_count"),
-            DB::raw("COUNT(DISTINCT CASE WHEN s.voting_for = '$plpName' THEN v.id END) as plp_count"),
-            DB::raw("COUNT(DISTINCT CASE WHEN s.voting_for = '$coiName' THEN v.id END) as coi_count"),
-            DB::raw("COUNT(DISTINCT CASE WHEN s.voting_for IS NOT NULL AND s.voting_for NOT IN ('$fnmName', '$plpName', '$coiName') THEN v.id END) as other_count"),
-            // Voters with no survey or NULL voting_for
-            DB::raw("COUNT(DISTINCT CASE WHEN s.voter_id IS NULL OR s.voting_for IS NULL THEN v.id END) as no_vote_count"),
-            // All voters in polling division
+            DB::raw("COUNT(DISTINCT CASE WHEN ls.voting_for = '$fnmName' THEN v.id END) as fnm_count"),
+            DB::raw("COUNT(DISTINCT CASE WHEN ls.voting_for = '$plpName' THEN v.id END) as plp_count"),
+            DB::raw("COUNT(DISTINCT CASE WHEN ls.voting_for = '$coiName' THEN v.id END) as coi_count"),
+            DB::raw("COUNT(DISTINCT CASE WHEN ls.voting_for IS NOT NULL AND ls.voting_for NOT IN ('$fnmName', '$plpName', '$coiName') THEN v.id END) as other_count"),
+            // Voters with NULL voting_for (they have survey but no voting preference)
+            DB::raw("COUNT(DISTINCT CASE WHEN ls.voting_for IS NULL THEN v.id END) as no_vote_count"),
+            // All surveyed voters in polling division
             DB::raw("COUNT(DISTINCT v.id) as total_count"),
 
-            // Percentages
-            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.voting_for = '$fnmName' THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as fnm_percentage"),
-            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.voting_for = '$plpName' THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as plp_percentage"),
-            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.voting_for = '$coiName' THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as coi_percentage"),
-            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.voting_for IS NOT NULL AND s.voting_for NOT IN ('$fnmName', '$plpName', '$coiName') THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as other_percentage"),
-            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.voter_id IS NULL OR s.voting_for IS NULL THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as no_vote_percentage")
+            // Percentages based on surveyed voters
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN ls.voting_for = '$fnmName' THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as fnm_percentage"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN ls.voting_for = '$plpName' THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as plp_percentage"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN ls.voting_for = '$coiName' THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as coi_percentage"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN ls.voting_for IS NOT NULL AND ls.voting_for NOT IN ('$fnmName', '$plpName', '$coiName') THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as other_percentage"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN ls.voting_for IS NULL THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as no_vote_percentage")
         )
         ->groupBy('v.polling')
         ->orderBy('v.polling', 'asc')
