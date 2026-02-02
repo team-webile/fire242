@@ -22,6 +22,7 @@ class SurveyVotersExport implements FromCollection, WithHeadings, WithStyles
     public function collection()
     {    
         return $this->voters->map(function ($voter) {
+            dd($voter);
             $row = [];
             
             if (in_array('id', $this->columns)) {
