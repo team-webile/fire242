@@ -213,7 +213,7 @@ class VoterController extends Controller
         ->orderBy('ls.created_at', 'desc');
 
 
-
+        dd($query->get());
 
 
             // Apply search filters
@@ -347,7 +347,7 @@ class VoterController extends Controller
         }, explode(',', $_GET['columns']));
         $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
     
-        dd($voters);
+      
         
         return Excel::download(new SurveyVotersExport($voters, $request, $columns), 'Voters In Survey_' . $timestamp . '.xlsx');  
 
