@@ -965,4 +965,214 @@ class VoterController extends Controller
         return Excel::download(new VotersDiffAddressExport($voters, $request, $columns), 'Voters Diff Address_' . $timestamp . '.xlsx');  
    } 
 
+
+
+   public function nationalRegisteryList(Request $request) 
+   {   
+       // Check if user is authenticated and has admin role
+       if (!auth()->check() || auth()->user()->role->name !== 'Admin') { 
+           return response()->json([
+               'success' => false,
+               'message' => 'Unauthorized - Admin access required'
+           ], 403);
+       }
+   
+      
+       $query = Voter::with(['constituency','user','living_constituency','surveyer_constituency'])
+           ->where('voters.is_national', 1); 
+           
+
+       $searchableFields = [
+           'first_name' => 'First Name',
+           'second_name' => 'Second Name',
+           'surname' => 'Surname', 
+           'address' => 'Address',
+           'voter' => 'Voter ID',
+           'const' => 'Constituency ID',
+           'constituency_name' => 'Constituency Name',
+           'polling' => 'Polling Station'
+       ];  
+
+       // Get search parameters
+       $const = $request->input('const');
+       $surname = $request->input('surname');
+       $firstName = $request->input('first_name');
+       $secondName = $request->input('second_name');
+       $address = $request->input('address');
+       $voterId = $request->input('voter');
+       $constituencyName = $request->input('constituency_name');
+       $constituencyId = $request->input('const');
+       $underAge25 = $request->input('under_age_25');
+       $polling = $request->input('polling');
+       $houseNumber = $request->input('house_number');
+       $pobse = $request->input('pobse');
+       $pobis = $request->input('pobis');
+       $pobcn = $request->input('pobcn');
+       $existsInDatabase = $request->input('exists_in_database'); 
+       $isVoted = $request->input('is_voted');
+       $advance_poll = $request->input('advance_poll');
+       $export = $request->input('export');
+
+       $partyId = $request->input('voting_for');
+       // if ($partyId) {
+       //     $partyId = Party::where('name', $partyId)->first();
+       //     $partyShortName = strtolower($partyId->short_name);
+       //     $query->whereRaw('LOWER(vci.exit_poll) = ?', [$partyShortName]);
+       // }
+
+       if ($partyId) {
+           $partyId = Party::where('name', $partyId)->first();
+           $partyShortName = strtolower($partyId->name);
+           $query->whereRaw('LOWER(ls.voting_for) = ?', [$partyShortName]);
+       }
+
+       // $partyId = $request->input('voting_for');
+       // if ($partyId) {
+       //     $query->where('ls.voting_for', $partyId);
+       // }
+
+
+       if ($advance_poll == 'yes') {
+           $query->where('voters.flagged', 1);
+       }
+
+       if ($isVoted === 'yes') {
+           $query->whereExists(function ($q) {
+               $q->select(DB::raw(1))
+                 ->from('voter_cards_images')
+                 ->whereColumn('voter_cards_images.reg_no', 'voters.voter'); 
+           });
+       }  
+
+
+       if ($isVoted === 'no') {
+           $query->whereNotExists(function ($q) {
+               $q->select(DB::raw(1))
+                 ->from('voter_cards_images')
+                 ->whereColumn('voter_cards_images.reg_no', 'voters.voter'); 
+           });
+
+       }
+       // Get sorting parameters
+       $sortBy = $request->input('sort_by'); // voter, const, or polling
+       $sortOrder = $request->input('sort_order', 'asc'); // asc or desc
+
+       // Validate sort order
+       $sortOrder = in_array(strtolower($sortOrder), ['asc', 'desc']) ? strtolower($sortOrder) : 'asc'; 
+
+
+       // Apply filters
+
+       if (!empty($polling) && is_numeric($polling)) {
+           $query->where('voters.polling', $polling);
+       }
+
+       if ($underAge25 === 'yes') {
+           $query->whereRaw('EXTRACT(YEAR FROM AGE(CURRENT_DATE, voters.dob)) < 25');
+       }
+
+       // Apply exists_in_database filter
+       if ($existsInDatabase === 'true') { 
+           $query->where('voters.exists_in_database', true);
+       } elseif ($existsInDatabase === 'false') {
+           $query->where('voters.exists_in_database', false);
+       }
+       
+       if (!empty($const)) {
+           $query->where('voters.const', $const);
+       }
+       
+       if (!empty($surname)) {
+           $query->whereRaw('LOWER(voters.surname) LIKE ?', ['%' . strtolower($surname) . '%']);
+       }
+
+       if (!empty($firstName)) {
+           $query->whereRaw('LOWER(voters.first_name) LIKE ?', ['%' . strtolower($firstName) . '%']);
+       }
+
+       if (!empty($secondName)) {
+           $query->whereRaw('LOWER(voters.second_name) LIKE ?', ['%' . strtolower($secondName) . '%']);
+       }
+
+   
+       $query->where(function($q) use ($houseNumber, $address, $pobse, $pobis, $pobcn) {
+           if ($houseNumber !== null && $houseNumber !== '') {
+               $q->whereRaw('LOWER(voters.house_number) = ?', [strtolower($houseNumber)]);
+           }
+           if ($address !== null && $address !== '') {
+               $q->whereRaw('LOWER(voters.address) = ?', [strtolower($address)]);
+           }
+           if ($pobse !== null && $pobse !== '') {
+               $q->whereRaw('LOWER(voters.pobse) = ?', [strtolower($pobse)]);
+           }
+           if ($pobis !== null && $pobis !== '') {
+               $q->whereRaw('LOWER(voters.pobis) = ?', [strtolower($pobis)]);
+           }
+           if ($pobcn !== null && $pobcn !== '') {
+               $q->whereRaw('LOWER(voters.pobcn) = ?', [strtolower($pobcn)]);
+           }
+       }); 
+
+
+       if (!empty($voterId) && is_numeric($voterId)) {
+           $query->where('voters.voter', $voterId);
+       }
+
+       if (!empty($constituencyName)) {
+           $query->whereHas('constituency', function ($q) use ($constituencyName) {
+               $q->whereRaw(
+                   'LOWER(name) LIKE ?',
+                   ['%' . strtolower($constituencyName) . '%']
+               );
+           });
+       }
+
+       if (!empty($constituencyId)) {
+           $query->where('voters.const', $constituencyId);
+       }
+
+
+       if (!empty($sortBy)) {
+           switch ($sortBy) {
+               case 'voter':
+                   $query->orderBy('voters.voter', $sortOrder);
+                   break;
+               case 'const':
+                   $query->orderBy('voters.const', $sortOrder);
+                   break;
+               case 'polling':
+                   $query->orderBy('voters.polling', $sortOrder);
+                   break;
+               case 'first_name':
+                   $query->orderByRaw('LOWER(voters.first_name) ' . strtoupper($sortOrder));
+                   break;
+               case 'last_name':
+                   $query->orderByRaw('LOWER(TRIM(voters.surname)) ' . strtoupper($sortOrder));
+                   break;
+               default:
+                   $query->orderBy('voters.id', 'desc'); 
+                   break;
+           }
+       } else {
+           // Default sorting
+           $query->orderBy('voters.id', 'desc');
+       }
+
+       // Get paginated results
+
+       if($export == 'true'){
+           $voters = $query->get();
+       }else{
+           $voters = $query->get();
+       }
+      
+       $columns = array_map(function($column) {
+        return strtolower(urldecode(trim($column)));
+    }, explode(',', $_GET['columns']));
+    
+    $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
+    return Excel::download(new VotersExport($voters, $request, $columns), 'Voters Diff Address_' . $timestamp . '.xlsx');  
+    
+   }
+
 } 

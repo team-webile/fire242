@@ -70,6 +70,7 @@ Route::middleware('jwt.auth')->group(function () {
         Route::get('voters-in-survey/export', [VoterController::class, 'getVotersInSurvey']); 
         Route::get('died-voters-in-survey/export', [VoterController::class, 'getDiedVotersInSurvey']);
         Route::get('/voters-diff-address/export', [VoterController::class, 'getVotersDiffAddress']);
+        Route::get('national-registery-list-export', [VoterController::class, 'nationalRegisteryList']);
         // Route::get('users/voters-in-survey/export/{id}', [VoterController::class, 'getVotersInSurveyDetails']); 
         Route::get('users/voters-in-survey/export/{id}', [VoterController::class, 'getUserSurveys']); 
         Route::get('constituencies/export', [ConstituencyController::class, 'index']);
