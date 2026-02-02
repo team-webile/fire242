@@ -361,7 +361,7 @@ Route::middleware([ 'jwt.auth'])->group(function () {
 
         
         
-        
+        Route::get('election-day-graph', [ManagerVoterCardController::class, 'electionDayGraph']);
         Route::get('get-constituencies/reports', [ManagerVoterCardController::class, 'getConstituencyReports']); 
         Route::get('getConstituencyReport1', [ManagerVoterCardController::class, 'getConstituencyReport1']);
         Route::get('getConstituencyReport2', [ManagerVoterCardController::class, 'getConstituencyReport2']);

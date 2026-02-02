@@ -804,8 +804,8 @@ class ManagerVoterCardController extends Controller
 
 
     public function getConstituencyReport4(Request $request)
-    {
-
+    { 
+ 
           // Get party names using EXACT same method as getVotersInSurvey
           // getVotersInSurvey uses: Party::whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first()
           $constituencyIds = explode(',', auth()->user()->constituency_id);
@@ -1110,6 +1110,213 @@ class ManagerVoterCardController extends Controller
       }
 
 
-
+      public function electionDayGraph(Request $request)
+      { 
+          // Only Admin
+          if (!auth()->check() || auth()->user()->role->name !== 'Admin') {
+              return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+          }
+  
+          // Cache graph per filter set to reduce DB load; 5-minute TTL
+          $cacheKey = 'election_day_graph_' . md5(json_encode($request->all()));
+          $payload = Cache::rememberForever($cacheKey, function () use ($request) {
+              // Define timeline mapping for slot display/labels (all times are EST)
+              $slotLabels = [
+                  "8am", "9am", "10am", "11am", "12pm",
+                  "1pm", "2pm", "3pm", "4pm", "5pm", "530pm"
+              ];
+  
+              // Base query: Apply all filters up until the DB time grouping
+              $query = DB::table('voters')
+                  ->leftJoin('voter_cards_images as vci', 'voters.voter', '=', 'vci.reg_no')
+                  ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
+                  ->leftJoin('surveys', function($join) {
+                      $join->on('surveys.voter_id', '=', 'voters.id')
+                           ->whereRaw('surveys.id = (SELECT MAX(s2.id) FROM surveys as s2 WHERE s2.voter_id = voters.id)');
+                  })
+                  // Only voter_cards with a created_at timestamp for bucketing
+                  ->whereNotNull('vci.created_at')
+                  ->whereIn('voters.const', explode(',', auth()->user()->constituency_id));
+  
+              // Pull out filters (same as before)
+              $const = $request->input('const');
+              $surname = $request->input('surname');
+              $firstName = $request->input('first_name');
+              $secondName = $request->input('second_name');
+              $address = $request->input('address');
+              $voterId = $request->input('voter');
+              $constituencyName = $request->input('constituency_name');
+              $constituencyId = $request->input('const');
+              $underAge25 = $request->input('under_age_25');
+              $polling = $request->input('polling');
+              $houseNumber = $request->input('house_number');
+              $pobse = $request->input('pobse');
+              $pobis = $request->input('pobis');
+              $pobcn = $request->input('pobcn');
+              $existsInDatabase = $request->input('exists_in_database');
+              $isVoted = $request->input('is_voted');
+              $isSurveyed = $request->input('is_surveyed');
+              $advance_poll = $request->input('advance_poll');
+              $partyId = $request->input('voting_for');
+  
+              if ($partyId) {
+                  $party = \App\Models\Party::where('name', $partyId)->first();
+                  if ($party && isset($party->short_name)) {
+                      $partyShortName = strtolower($party->short_name);
+                      $query->whereRaw('LOWER(vci.exit_poll) = ?', [$partyShortName]);
+                  } else {
+                      $query->whereRaw('1=0');
+                  }
+              }
+  
+              if ($advance_poll == 'yes') {
+                  $query->where('voters.flagged', 1);
+              }
+  
+              // is_surveyed filter
+              if ($isSurveyed === 'yes') {
+                  $query->whereNotNull('surveys.id');
+              } elseif ($isSurveyed === 'no') {
+                  $query->whereNull('surveys.id');
+              }
+  
+              // is_voted filter (optimized: skip results if not voted)
+              if ($isVoted === 'no') {
+                  $query->whereRaw('1=0');
+              }
+  
+              if (!empty($polling) && is_numeric($polling)) {
+                  $query->where('voters.polling', $polling);
+              }
+  
+              if ($underAge25 === 'yes') {
+                  $query->whereRaw('EXTRACT(YEAR FROM AGE(CURRENT_DATE, voters.dob)) < 25');
+              }
+  
+              if ($existsInDatabase === true || $existsInDatabase === 'true') {
+                  $query->where('voters.exists_in_database', true);
+              } elseif ($existsInDatabase === false || $existsInDatabase === 'false') {
+                  $query->where('voters.exists_in_database', false);
+              }
+  
+              if (!empty($const)) {
+                  $query->where('voters.const', $const);
+              }
+  
+              if (!empty($surname)) {
+                  $query->whereRaw('voters.surname ILIKE ?', ['%' . $surname . '%']);
+              }
+  
+              if (!empty($firstName)) {
+                  $query->whereRaw('voters.first_name ILIKE ?', ['%' . $firstName . '%']);
+              }
+  
+              if (!empty($secondName)) {
+                  $query->whereRaw('voters.second_name ILIKE ?', ['%' . $secondName . '%']);
+              }
+  
+              $query->where(function($q) use ($houseNumber, $address, $pobse, $pobis, $pobcn) {
+                  if ($houseNumber !== null && $houseNumber !== '') {
+                      $q->whereRaw('voters.house_number ILIKE ?', [$houseNumber]);
+                  }
+                  if ($address !== null && $address !== '') {
+                      $q->whereRaw('voters.address ILIKE ?', [$address]);
+                  }
+                  if ($pobse !== null && $pobse !== '') {
+                      $q->whereRaw('voters.pobse ILIKE ?', [$pobse]);
+                  }
+                  if ($pobis !== null && $pobis !== '') {
+                      $q->whereRaw('voters.pobis ILIKE ?', [$pobis]);
+                  }
+                  if ($pobcn !== null && $pobcn !== '') {
+                      $q->whereRaw('voters.pobcn ILIKE ?', [$pobcn]);
+                  }
+              });
+  
+              if (!empty($voterId) && is_numeric($voterId)) {
+                  $query->where('voters.voter', $voterId);
+              }
+  
+              if (!empty($constituencyName)) {
+                  $query->whereRaw('constituencies.name ILIKE ?', ['%' . $constituencyName . '%']);
+              }
+  
+              if (!empty($constituencyId)) {
+                  $query->where('voters.const', $constituencyId);
+              }
+  
+              // Total voters (y axis should be all eligible voters matching the filter)
+              $totalVoters = (clone $query)->distinct('voters.voter')->count('voters.voter');
+  
+              // NOTE: The following assumes 'vci.created_at' is in UTC. To convert to EST (UTC-5),
+              // we use AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'.
+              // This ensures bucketing/grouping is done in EST regardless of server timezone.
+  
+              $rawCase = "CASE
+                  WHEN EXTRACT(HOUR FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) = 8 THEN '8am'
+                  WHEN EXTRACT(HOUR FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) = 9 THEN '9am'
+                  WHEN EXTRACT(HOUR FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) = 10 THEN '10am'
+                  WHEN EXTRACT(HOUR FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) = 11 THEN '11am'
+                  WHEN EXTRACT(HOUR FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) = 12 THEN '12pm'
+                  WHEN EXTRACT(HOUR FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) = 13 THEN '1pm'
+                  WHEN EXTRACT(HOUR FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) = 14 THEN '2pm'
+                  WHEN EXTRACT(HOUR FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) = 15 THEN '3pm'
+                  WHEN EXTRACT(HOUR FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) = 16 THEN '4pm'
+                  WHEN EXTRACT(HOUR FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) = 17 
+                      AND EXTRACT(MINUTE FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) < 30 THEN '5pm'
+                  WHEN EXTRACT(HOUR FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) = 17 
+                      AND EXTRACT(MINUTE FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) >= 30 THEN '530pm'
+                  ELSE NULL END as slot_label";
+  
+              $bucketQuery = (clone $query)
+                  ->selectRaw("$rawCase, COUNT(*) as count")
+                  ->whereRaw("(EXTRACT(HOUR FROM (vci.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')) BETWEEN 8 AND 17)")
+                  ->groupByRaw('slot_label');
+  
+              $results = $bucketQuery->get();
+  
+              // Prepare slot counts with all slots filled
+              $counts = array_fill_keys($slotLabels, 0);
+              foreach($results as $row) {
+                  if ($row->slot_label && isset($counts[$row->slot_label])) {
+                      $counts[$row->slot_label] = intval($row->count);
+                  }
+              }
+  
+              // Build graph with cumulative totals, without EST in time
+              $graph = [];
+              $running = 0;
+              foreach ($counts as $time => $inc) {
+                  $running += $inc;
+                  $graph[] = [
+                      'time' => $time,
+                      'increment' => $inc,
+                      'value' => $running
+                  ];
+              }
+  
+              $total = $running;
+  
+              // Y-axis: From 0 up to $totalVoters, 12 ticks evenly spaced
+              $tickCount = 12;
+              $step = $tickCount > 1 ? ($totalVoters / ($tickCount - 1)) : $totalVoters;
+              $yAxis = [];
+              for ($i = 0; $i < $tickCount; $i++) {
+                  $yAxis[] = (int)round($i * $step);
+              }
+  
+              return [
+                  'success' => true,
+                  'total_voted' => $total,
+                  'total_voters' => $totalVoters,
+                  'slots' => array_keys($counts),
+                  'graph' => $graph,
+                  'y_axis' => $yAxis,
+                  'time_zone' => 'EST'
+              ];
+          });
+  
+          return response()->json($payload);
+      }
 
 }

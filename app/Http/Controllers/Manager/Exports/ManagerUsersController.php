@@ -19,13 +19,17 @@ use Illuminate\Support\Facades\DB;
 use App\Exports\Reports1Export;
 use App\Exports\Reports2Export;
 use App\Exports\Reports3Export;      
-use App\Exports\Reports4Export;      
+use App\Exports\Reports4Export; 
+use DB;     
 class ManagerUsersController extends Controller
 {
      
     
     public function export(Request $request)  
     {
+
+     
+        
         $query = User::where('manager_id', auth()->user()->id)->where('role_id', 2)
                     ->withCount('surveys'); // Add surveys count
  
