@@ -1131,8 +1131,8 @@ class ManagerVoterCardController extends Controller
                            ->whereRaw('surveys.id = (SELECT MAX(s2.id) FROM surveys as s2 WHERE s2.voter_id = voters.id)');
                   })
                   // Only voter_cards with a created_at timestamp for bucketing
-                  ->whereNotNull('vci.created_at');
-                  // ->whereIn('voters.const', explode(',', auth()->user()->constituency_id));
+                  ->whereNotNull('vci.created_at')
+                  ->whereIn('voters.const', explode(',', auth()->user()->constituency_id));
   
               // Pull out filters (same as before)
               $const = $request->input('const');
