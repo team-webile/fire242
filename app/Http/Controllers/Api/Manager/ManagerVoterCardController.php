@@ -811,7 +811,7 @@ class ManagerVoterCardController extends Controller
             'url'        => '/panel/manager/voters/report-4',
             'status'     => 'active',
             'created_at' => now(),
-            'updated_at' => now(),
+            'updated_at' => now(), 
         ]);
 
        dd(DB::table('manager_pages')->get()); 
