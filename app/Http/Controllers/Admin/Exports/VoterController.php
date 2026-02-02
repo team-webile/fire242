@@ -1152,7 +1152,7 @@ class VoterController extends Controller
        }
 
        // Get paginated results
-       dd($query->get());
+       
        if($export == 'true'){
            $voters = $query->get();
        }else{
