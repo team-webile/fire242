@@ -13,13 +13,13 @@ use App\Exports\SurveyTargetExport;
 use App\Exports\MangerFNMVotersExport;
 use App\Exports\VotersDiffAddressExport;
 use App\Models\Voter;
-use App\Models\Reports4Export;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Survey;
 use Illuminate\Support\Facades\DB;
 use App\Exports\Reports1Export;
 use App\Exports\Reports2Export;
 use App\Exports\Reports3Export;      
+use App\Exports\Reports4Export;      
 class ManagerUsersController extends Controller
 {
      
