@@ -969,18 +969,11 @@ class VoterController extends Controller
 
    public function nationalRegisteryList(Request $request) 
    {   
-       // Check if user is authenticated and has admin role
-       if (!auth()->check() || auth()->user()->role->name !== 'Admin') { 
-           return response()->json([
-               'success' => false,
-               'message' => 'Unauthorized - Admin access required'
-           ], 403);
-       }
-   
-      
+        
+    
        $query = Voter::with(['constituency','user','living_constituency','surveyer_constituency'])
            ->where('voters.is_national', 1); 
-           
+           dd($query->get()); 
 
        $searchableFields = [
            'first_name' => 'First Name',
