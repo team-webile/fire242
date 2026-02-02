@@ -339,15 +339,29 @@ class ConstituencyController extends Controller
 
      public function getConstituencyReport4(Request $request)
     {
-        // Build the query with joins - starting from voters to match index function count
+        // Get party names from database for consistent matching with getVotersInSurvey
+        $parties = DB::table('parties')
+            ->where('status', 'active')
+            ->orderBy('position')
+            ->get()
+            ->keyBy('short_name');
+        
+        // Get exact party names from database (same approach as getVotersInSurvey)
+        $fnmName = $parties->get('FNM')->name ?? 'Free National Movement';
+        $plpName = $parties->get('PLP')->name ?? 'Progressive Liberal Party';
+        $dnaName = $parties->get('DNA')->name ?? 'Democratic National Alliance';
+        $coiName = $parties->get('COI')->name ?? 'Coalition of Independents';
+
+        // Build the query with joins - using DISTINCT ON for latest survey per voter (efficient for PostgreSQL)
+        // Using same subquery pattern as getVotersInSurvey for consistency
         $query = DB::table('voters as v')
             ->leftJoin('constituencies as c', 'v.const', '=', 'c.id')
-            ->leftJoin('surveys', function($join) {
-                $join->on('surveys.voter_id', '=', 'v.id')
-                     ->whereRaw('surveys.id = (SELECT MAX(s2.id) FROM surveys as s2 WHERE s2.voter_id = v.id)');
-            })
-            ->leftJoin('voter_cards_images as vci', 'vci.reg_no', '=', 'v.voter')
-            ->whereNotNull('vci.reg_no');
+            ->leftJoin(DB::raw("(
+                SELECT DISTINCT ON (voter_id) id, voter_id, voting_for, created_at
+                FROM surveys 
+                ORDER BY voter_id, id DESC
+            ) as s"), 'v.id', '=', 's.voter_id');
+
         // Get filter parameters
         $existsInDatabase = $request->input('exists_in_database');
         $underAge25 = $request->input('under_age_25');
@@ -397,54 +411,53 @@ class ConstituencyController extends Controller
             $query->where('v.voter', $voterId);
         }
         // Address filters
-        $query->where(function($q) use ($houseNumber, $address, $pobse, $pobis, $pobcn) {
-            if ($houseNumber !== null && $houseNumber !== '') {
-                $q->whereRaw('LOWER(v.house_number) = ?', [strtolower($houseNumber)]);
-            }
-            if ($address !== null && $address !== '') {
-                $q->whereRaw('LOWER(v.address) = ?', [strtolower($address)]);
-            }
-            if ($pobse !== null && $pobse !== '') {
-                $q->whereRaw('LOWER(v.pobse) = ?', [strtolower($pobse)]);
-            }
-            if ($pobis !== null && $pobis !== '') {
-                $q->whereRaw('LOWER(v.pobis) = ?', [strtolower($pobis)]);
-            }
-            if ($pobcn !== null && $pobcn !== '') {
-                $q->whereRaw('LOWER(v.pobcn) = ?', [strtolower($pobcn)]);
-            }
-        });
+        if ($houseNumber !== null && $houseNumber !== '') {
+            $query->whereRaw('LOWER(v.house_number) = ?', [strtolower($houseNumber)]);
+        }
+        if ($address !== null && $address !== '') {
+            $query->whereRaw('LOWER(v.address) = ?', [strtolower($address)]);
+        }
+        if ($pobse !== null && $pobse !== '') {
+            $query->whereRaw('LOWER(v.pobse) = ?', [strtolower($pobse)]);
+        }
+        if ($pobis !== null && $pobis !== '') {
+            $query->whereRaw('LOWER(v.pobis) = ?', [strtolower($pobis)]);
+        }
+        if ($pobcn !== null && $pobcn !== '') {
+            $query->whereRaw('LOWER(v.pobcn) = ?', [strtolower($pobcn)]);
+        }
 
-        // Select aggregated data by polling division
+        // Select aggregated data by polling division using surveys.voting_for
+        // Using exact party names from database for consistent matching
         $results = $query->select(
             'v.polling as polling_division',
-            // Use DISTINCT vci.reg_no for UNIQUE voter id count in images (not vci.id)
-            DB::raw("COUNT(DISTINCT CASE WHEN vci.exit_poll = 'fnm' THEN vci.reg_no END) as fnm_count"),
-            DB::raw("COUNT(DISTINCT CASE WHEN vci.exit_poll = 'plp' THEN vci.reg_no END) as plp_count"),
-            DB::raw("COUNT(DISTINCT CASE WHEN vci.exit_poll = 'dna' THEN vci.reg_no END) as dna_count"),
-            DB::raw("COUNT(DISTINCT CASE WHEN vci.exit_poll NOT IN ('fnm', 'plp', 'dna') AND vci.exit_poll IS NOT NULL THEN vci.reg_no END) as other_count"),
-            // For no_vote_count, those voters with NO voter card image at all
-            DB::raw("COUNT(DISTINCT CASE WHEN vci.reg_no IS NULL THEN v.id END) as no_vote_count"),
+            // Count by voting_for from latest survey per voter - using DB party names
+            DB::raw("COUNT(DISTINCT CASE WHEN s.voting_for = '$fnmName' THEN v.id END) as fnm_count"),
+            DB::raw("COUNT(DISTINCT CASE WHEN s.voting_for = '$plpName' THEN v.id END) as plp_count"),
+            DB::raw("COUNT(DISTINCT CASE WHEN s.voting_for = '$coiName' THEN v.id END) as coi_count"),
+            DB::raw("COUNT(DISTINCT CASE WHEN s.voting_for IS NOT NULL AND s.voting_for NOT IN ('$fnmName', '$plpName', '$coiName') THEN v.id END) as other_count"),
+            // Voters with no survey or NULL voting_for
+            DB::raw("COUNT(DISTINCT CASE WHEN s.voter_id IS NULL OR s.voting_for IS NULL THEN v.id END) as no_vote_count"),
             // All voters in polling division
             DB::raw("COUNT(DISTINCT v.id) as total_count"),
 
-            // Percentages (use reg_no counts in numerator)
-            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN vci.exit_poll = 'fnm' THEN vci.reg_no END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as fnm_percentage"),
-            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN vci.exit_poll = 'plp' THEN vci.reg_no END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as plp_percentage"),
-            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN vci.exit_poll = 'dna' THEN vci.reg_no END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as dna_percentage"),
-            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN vci.exit_poll NOT IN ('fnm', 'plp', 'dna') AND vci.exit_poll IS NOT NULL THEN vci.reg_no END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as other_percentage"),
-            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN vci.reg_no IS NULL THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as no_vote_percentage")
+            // Percentages
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.voting_for = '$fnmName' THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as fnm_percentage"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.voting_for = '$plpName' THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as plp_percentage"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.voting_for = '$coiName' THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as coi_percentage"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.voting_for IS NOT NULL AND s.voting_for NOT IN ('$fnmName', '$plpName', '$coiName') THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as other_percentage"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.voter_id IS NULL OR s.voting_for IS NULL THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as no_vote_percentage")
         )
         ->groupBy('v.polling')
         ->orderBy('v.polling', 'asc')
         ->paginate($request->input('per_page', 20));
 
-        // Transform: add total_party_count (sum of fnm, plp, dna, other counts) to each item
+        // Transform: add total_party_count (sum of fnm, plp, coi, other counts) to each item
         $results->getCollection()->transform(function ($item) {
             $item->total_party_count =
                 $item->fnm_count
                 + $item->plp_count
-                + $item->dna_count
+                + $item->coi_count
                 + $item->other_count;
             return $item;
         });
