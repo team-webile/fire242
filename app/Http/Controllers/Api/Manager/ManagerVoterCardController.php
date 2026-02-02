@@ -803,18 +803,10 @@ class ManagerVoterCardController extends Controller
 
 
 
-      public function getConstituencyReport4(Request $request)
-  {
+    public function getConstituencyReport4(Request $request)
+    {
 
-          DB::table('manager_pages')->insert([
-            'name'       => 'Constituencies Reports 4',
-            'url'        => '/panel/manager/voters/report-4',
-            'status'     => 'active',
-            'created_at' => now(),
-            'updated_at' => now(), 
-        ]);
-
-       dd(DB::table('manager_pages')->get()); 
+        
           // Get party names using EXACT same method as getVotersInSurvey
           // getVotersInSurvey uses: Party::whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first()
           $constituencyIds = explode(',', auth()->user()->constituency_id);
@@ -826,7 +818,7 @@ class ManagerVoterCardController extends Controller
           $fnmName = $fnmParty ? $fnmParty->name : 'Free National Movement';
           $plpName = $plpParty ? $plpParty->name : 'Progressive Liberal Party';
           $coiName = $coiParty ? $coiParty->name : 'Coalition of Independents';
-  
+
           // Build query EXACTLY like getVotersInSurvey - using INNER JOIN with raw subquery
           // This ensures only voters WITH surveys are counted (same as getVotersInSurvey)
           $query = DB::table('voters as v')
@@ -847,7 +839,7 @@ class ManagerVoterCardController extends Controller
                   ORDER BY voter_id, id DESC
               ) as ls"), 'ls.voter_id', '=', 'v.id')
                 ->whereIn('v.const', $constituencyIds);  // INNER JOIN - only voters with surveys
-  
+
           // Get ALL filter parameters - SAME as getVotersInSurvey
           $existsInDatabase = $request->input('exists_in_database');
           $underAge25 = $request->input('under_age_25');
@@ -872,21 +864,21 @@ class ManagerVoterCardController extends Controller
           $user_id = $request->input('user_id');
           $start_date = $request->input('start_date');
           $end_date = $request->input('end_date');
-  
+
           // Apply challenge filter - SAME as getVotersInSurvey
           if ($challenge === 'true') {
               $query->whereRaw('ls.challenge IS TRUE');
           } elseif ($challenge === 'false') {
               $query->whereRaw('ls.challenge IS FALSE');
           }
-  
+
           // Apply exists_in_database filter - SAME as getVotersInSurvey
           if ($existsInDatabase === 'true') {
               $query->where('v.exists_in_database', true);
           } elseif ($existsInDatabase === 'false') {
               $query->where('v.exists_in_database', false);
           }
-  
+
           // Apply voting_for filter - SAME logic as getVotersInSurvey
           if ($voting_for !== null && $voting_for !== '') {
               if (is_numeric($voting_for)) {
@@ -898,42 +890,42 @@ class ManagerVoterCardController extends Controller
                   $query->where('ls.voting_for', $get_party->name);
               }
           }
-  
+
           // Apply is_died filter - SAME as getVotersInSurvey
           if ($is_died !== null && $is_died !== '') {
               $query->where('ls.is_died', $is_died);
           }
-  
+
           // Apply died_date filter - SAME as getVotersInSurvey
           if ($died_date !== null && $died_date !== '') {
               $query->where('ls.died_date', $died_date);
           }
-  
+
           // Apply voting_decision filter - SAME as getVotersInSurvey
           if (!empty($voting_decision)) {
               $query->where('ls.voting_decision', $voting_decision);
           }
-  
+
           // Apply located filter - SAME as getVotersInSurvey
           if (!empty($located)) {
               $query->whereRaw('LOWER(ls.located) = ?', [strtolower($located)]);
           }
-  
+
           // Apply polling filter - SAME as getVotersInSurvey
           if (!empty($polling) && is_numeric($polling)) {
               $query->where('v.polling', $polling);
           }
-  
+
           // Apply under_age_25 filter - SAME as getVotersInSurvey
           if ($underAge25 === 'yes') {
               $query->whereRaw('EXTRACT(YEAR FROM AGE(CURRENT_DATE, v.dob)) < 25');
           }
-  
+
           // Apply user_id filter - SAME as getVotersInSurvey
           if (!empty($user_id)) {
               $query->where('ls.user_id', $user_id);
           }
-  
+
           // Apply date range filters - SAME as getVotersInSurvey
           if (!empty($start_date)) {
               $query->where('ls.created_at', '>=', $start_date . ' 00:00:00');
@@ -941,7 +933,7 @@ class ManagerVoterCardController extends Controller
           if (!empty($end_date)) {
               $query->where('ls.created_at', '<=', $end_date . ' 23:59:59');
           }
-  
+
           // Apply name filters - SAME as getVotersInSurvey
           if (!empty($surname)) {
               $query->whereRaw('LOWER(v.surname) LIKE ?', ['%' . strtolower($surname) . '%']);
@@ -952,7 +944,7 @@ class ManagerVoterCardController extends Controller
           if (!empty($secondName)) {
               $query->whereRaw('LOWER(v.second_name) LIKE ?', ['%' . strtolower($secondName) . '%']);
           }
-  
+
           // Apply address filters - SAME as getVotersInSurvey
           $query->where(function($q) use ($houseNumber, $address, $pobse, $pobis, $pobcn) {
               if ($houseNumber !== null && $houseNumber !== '') {
@@ -971,22 +963,22 @@ class ManagerVoterCardController extends Controller
                   $q->whereRaw('LOWER(v.pobcn) = ?', [strtolower($pobcn)]);
               }
           });
-  
+
           // Apply voter ID filter - SAME as getVotersInSurvey
           if (!empty($voterId) && is_numeric($voterId)) {
               $query->where('v.voter', $voterId);
           }
-  
+
           // Apply constituency name filter - SAME as getVotersInSurvey
           if (!empty($constituencyName)) {
               $query->whereRaw('LOWER(c.name) LIKE ?', ['%' . strtolower($constituencyName) . '%']);
           }
-  
+
           // Apply constituency ID filter - SAME as getVotersInSurvey
           if (!empty($constituencyId) && is_numeric($constituencyId)) {
               $query->where('v.const', $constituencyId);
           }
-  
+
           // Select aggregated data by polling division
           // Using exact party names from database for consistent matching
           $results = $query->select(
@@ -1000,7 +992,7 @@ class ManagerVoterCardController extends Controller
               DB::raw("COUNT(DISTINCT CASE WHEN ls.voting_for IS NULL THEN v.id END) as no_vote_count"),
               // All surveyed voters in polling division
               DB::raw("COUNT(DISTINCT v.id) as total_count"),
-  
+
               // Percentages based on surveyed voters
               DB::raw("ROUND((COUNT(DISTINCT CASE WHEN ls.voting_for = '$fnmName' THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as fnm_percentage"),
               DB::raw("ROUND((COUNT(DISTINCT CASE WHEN ls.voting_for = '$plpName' THEN v.id END) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as plp_percentage"),
@@ -1011,7 +1003,7 @@ class ManagerVoterCardController extends Controller
           ->groupBy('v.polling')
           ->orderBy('v.polling', 'asc')
           ->paginate($request->input('per_page', 20));
-  
+
           // Transform: add total_party_count (sum of fnm, plp, coi, other counts) to each item
           $results->getCollection()->transform(function ($item) {
               $item->total_party_count =
@@ -1021,7 +1013,7 @@ class ManagerVoterCardController extends Controller
                   + $item->other_count;
               return $item;
           });
-  
+
           // Calculate grand totals across ALL polling divisions (not just current page)
           // Clone the base query to get totals without pagination
           $totalsQuery = DB::table('voters as v')
@@ -1033,27 +1025,27 @@ class ManagerVoterCardController extends Controller
                   FROM surveys 
                   ORDER BY voter_id, id DESC
               ) as ls"), 'ls.voter_id', '=', 'v.id');
-  
+
           // Apply same filters to totals query
           $existsInDatabase = $request->input('exists_in_database');
           $constituencyId = $request->input('const') ?? $request->input('constituency_id');
           $constituencyName = $request->input('constituency_name');
           $voting_for = $request->input('voting_for');
-  
+
           if ($existsInDatabase === 'true') {
               $totalsQuery->where('v.exists_in_database', true);
           } elseif ($existsInDatabase === 'false') {
               $totalsQuery->where('v.exists_in_database', false);
           }
-  
+
           if (!empty($constituencyId) && is_numeric($constituencyId)) {
               $totalsQuery->where('v.const', $constituencyId);
           }
-  
+
           if (!empty($constituencyName)) {
               $totalsQuery->whereRaw('LOWER(c.name) LIKE ?', ['%' . strtolower($constituencyName) . '%']);
           }
-  
+
           if ($voting_for !== null && $voting_for !== '') {
               if (is_numeric($voting_for)) {
                   $get_party = DB::table('parties')->where('id', $voting_for)->first();
@@ -1064,7 +1056,7 @@ class ManagerVoterCardController extends Controller
                   $totalsQuery->where('ls.voting_for', $get_party->name);
               }
           }
-  
+
           // Get grand totals
           $grandTotals = $totalsQuery->selectRaw("
               COUNT(DISTINCT CASE WHEN ls.voting_for = '$fnmName' THEN v.id END) as fnm_total,
@@ -1074,7 +1066,7 @@ class ManagerVoterCardController extends Controller
               COUNT(DISTINCT CASE WHEN ls.voting_for IS NULL THEN v.id END) as no_vote_total,
               COUNT(DISTINCT v.id) as grand_total
           ")->first();
-  
+
           // DEBUG: Get verification count using EXACT same query as getVotersInSurvey
           // This should match the total from getVotersInSurvey API
           $verificationQuery = DB::table('voters')
@@ -1088,7 +1080,7 @@ class ManagerVoterCardController extends Controller
           // Apply FNM filter for verification (same as getVotersInSurvey)
           $verificationQuery->where('ls.voting_for', $fnmName);
           $fnmVerificationCount = $verificationQuery->count();
-  
+
           // Also get all distinct voting_for values to debug
           $votingForValues = DB::table('surveys')
               ->select('voting_for')
@@ -1096,7 +1088,7 @@ class ManagerVoterCardController extends Controller
               ->whereNotNull('voting_for')
               ->pluck('voting_for')
               ->toArray();
-  
+
           return response()->json([
               'success' => true,
               'message' => 'Voter cards report retrieved successfully',
