@@ -741,7 +741,9 @@ class ManagerVoterCardController extends Controller
     
       public function listVoterCardResult(Request $request){
     
-        $query = VoterCardImage::with(['user', 'voter.constituency'])->where('user_id', auth()->user()->id)->orderBy('id', 'desc');
+        $query = VoterCardImage::with(['user', 'voter.constituency'])->whereHas('voter', function($q) {
+          $q->whereIn('const', explode(',', auth()->user()->constituency_id));
+        })->orderBy('id', 'desc');
     
         // Filter by voter_id if provided
         if ($request->has('voter') && !empty($request->get('voter'))) {
