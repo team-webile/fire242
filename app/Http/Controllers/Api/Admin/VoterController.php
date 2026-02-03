@@ -320,9 +320,9 @@ class VoterController extends Controller
             } else {
                 $party = Party::whereRaw('LOWER(name) = ?', [strtolower($partyId)])->first();
             }
-            dd($party);
-            if ($party && isset($party->short_name)) {
-                $partyShortName = strtolower($party->short_name);
+            
+            if ($party && isset($party->name)) {
+                $partyShortName = strtolower($party->name);
                 $query->whereRaw('LOWER(ls.voting_for) = ?', [$partyShortName]);
             }
         }
