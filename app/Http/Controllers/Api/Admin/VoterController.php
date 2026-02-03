@@ -1257,9 +1257,15 @@ class VoterController extends Controller
 
             // Filter by party (exit_poll) - same semantics as listVoterCardResult
             if ($votingFor !== null && $votingFor !== '') {
-                $get_party  = Party::where('name', $votingFor)->first();
-                $votingFor = strtolower($get_party->short_name);
-                $query->whereRaw('LOWER(vci.exit_poll) = ?', [strtolower($votingFor)]); 
+                if (is_numeric($votingFor)) {
+                    $get_party = Party::where('id', $votingFor)->first();
+                } else {
+                    $get_party = Party::whereRaw('LOWER(name) = ?', [strtolower($votingFor)])->first();
+                }
+                if ($get_party) {
+                    $partyShortName = strtolower($get_party->short_name);
+                    $query->whereRaw('LOWER(vci.exit_poll) = ?', [$partyShortName]); 
+                }
             }
 
             // Filter by voter_null (reg_no null / not null)

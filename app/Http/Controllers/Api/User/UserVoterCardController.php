@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Voter;
 use App\Models\Constituency;
 use App\Models\VoterCardImage;
+use App\Models\Party;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 
@@ -421,8 +422,17 @@ class UserVoterCardController extends Controller
       $query->where('reg_no', 'like', '%' . $request->get('voter') . '%');
     }
     // Filter by party (exit_poll) if provided
-    if ($request->has('voting_for') && !empty($request->get('voting_for'))) {
-      $query->whereRaw('LOWER(exit_poll) = ?', [strtolower($request->get('voting_for'))]);
+    $votingFor = $request->get('voting_for');
+    if ($votingFor !== null && $votingFor !== '') {
+        if (is_numeric($votingFor)) {
+            $party = Party::where('id', $votingFor)->first();
+        } else {
+            $party = Party::whereRaw('LOWER(name) = ?', [strtolower($votingFor)])->first();
+        }
+        if ($party) {
+            $partyShortName = strtolower($party->short_name);
+            $query->whereRaw('LOWER(exit_poll) = ?', [$partyShortName]);
+        }
     }
 
 
