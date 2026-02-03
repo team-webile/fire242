@@ -1772,13 +1772,13 @@ public function newlyRegistered(Request $request)
 
         if (!empty($type) && $type === 'update') {
             $query->join('voter_history', 'voters.voter', '=', 'voter_history.voter_id');
-            $query->whereRaw('voters.newly_registered IS TRUE');
+            $query->where('voters.newly_registered', true);
         }
 
         if ($existsInDatabase === 'true') {
-            $query->whereRaw('voters.exists_in_database IS TRUE');
+            $query->where('voters.exists_in_database', true);
         } elseif ($existsInDatabase === 'false') {
-            $query->whereRaw('voters.exists_in_database IS FALSE');
+            $query->where('voters.exists_in_database', false);
         } 
 
 
