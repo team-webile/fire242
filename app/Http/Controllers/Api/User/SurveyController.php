@@ -425,7 +425,6 @@ class SurveyController extends Controller
     public function index(Request $request)
     {
         // Check if user is authenticated and has admin role
-       
         if (!auth()->check() || auth()->user()->role->name !== 'User') {
             return response()->json([
                 'success' => false,
@@ -443,24 +442,20 @@ class SurveyController extends Controller
         } elseif ($challenge === 'false') {
             $query->whereRaw('challenge IS FALSE');
         }
-        
 
-        // Search fields based on Survey model's fillable columns
-        // Apply all search filters directly from URL parameters with case-insensitive search
-
+        // Fix: Correct query syntax for Postgres boolean fields
         if ($existsInDatabase === 'true') {
-            $query->whereHas('voter', function($q) use ($existsInDatabase) {
-                $q->where('voters.exists_in_database IS TRUE');
-                
-                
+            $query->whereHas('voter', function($q) {
+                $q->where('exists_in_database', true);
             });
         } elseif ($existsInDatabase === 'false') {
-            $query->whereHas('voter', function($q) use ($existsInDatabase) {
-                $q->where('voters.exists_in_database IS FALSE');
+            $query->whereHas('voter', function($q) {
+                $q->where('exists_in_database', false);
             });
         }
+
         if ($request->has('voting_decision')) {
-            $query->where('voting_decision',$request->voting_decision);
+            $query->where('voting_decision', $request->voting_decision);
         }
 
         if ($voting_for !== null && $voting_for !== '') {
@@ -471,20 +466,20 @@ class SurveyController extends Controller
                 // Search by name (case-insensitive)
                 $get_party = Party::whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first();
             }
-            
+
             if ($get_party) {
                 $voting_for = $get_party->name;
                 $query->where('ls.voting_for', $voting_for);
             }
         }
-         
+
         if($request->has('is_died')){
-            $query->where('is_died',$request->is_died); 
+            $query->where('is_died',$request->is_died);
         }
-        if( $request->has('died_date')){
+        if($request->has('died_date')){
             $query->where('died_date', $request->died_date);
-        }   
- 
+        }
+
         if ($request->has('employed')) {
             $query->where('employed', filter_var($request->employed, FILTER_VALIDATE_BOOLEAN));
         }
@@ -528,7 +523,6 @@ class SurveyController extends Controller
         if ($request->has('other_comments')) {
             $query->whereRaw('LOWER(other_comments) LIKE ?', ['%' . strtolower($request->other_comments) . '%']);
         }
- 
 
         if ($request->has('voted_in_2017')) {
             $query->where('voted_in_2017', filter_var($request->voted_in_2017, FILTER_VALIDATE_BOOLEAN));
@@ -564,7 +558,7 @@ class SurveyController extends Controller
             $query->whereHas('voter', function($q) use ($request) {
                 $q->whereRaw("search_vector @@ plainto_tsquery('simple', ?)", [strtolower($request->last_name)]);
             });
-        } 
+        }
 
         if ($request->has('start_date')) {
             $query->where('created_at', '>=', $request->start_date . ' 00:00:00');
@@ -574,14 +568,12 @@ class SurveyController extends Controller
             $query->where('created_at', '<=', $request->end_date . ' 23:59:59');
         }
 
-         
         // Get paginated results
         $surveys = $query->where('user_id', auth()->user()->id)->orderBy('id', 'desc')->paginate($request->get('per_page', 20));
 
         return response()->json([
             'success' => true,
             'data' => $surveys,
-             
         ]);
     }
 
