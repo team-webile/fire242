@@ -18,8 +18,8 @@ class ManagerNewlyRegisteredVoterController extends Controller
         
      $constituency_ids = explode(',', auth()->user()->constituency_id);
 
-    $query = Voter::query()
-    ->select('voters.*', 'constituencies.name as constituency_name')
+    $query = Voter::query() 
+    ->select('voters.*', 'constituencies.name as constituency_name') 
     ->join('constituencies', 'voters.const', '=', 'constituencies.id')
     ->whereIn('voters.const', $constituency_ids);
 
