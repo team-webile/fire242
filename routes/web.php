@@ -124,6 +124,7 @@ Route::middleware('jwt.auth')->group(function () {
         Route::get('voter-cards-plp/export', [ManagerVoterCardController::class, 'getVoterCard_PLP']);
         Route::get('voter-cards-dna/export', [ManagerVoterCardController::class, 'getVoterCard_DNA']);
         Route::get('voter-cards-unk/export', [ManagerVoterCardController::class, 'getVoterCard_UNK']); 
+        Route::get('list-voter-card-result/export', [ManagerVoterCardController::class, 'listVoterCardResult']); 
 
     });  
 

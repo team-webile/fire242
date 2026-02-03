@@ -167,4 +167,46 @@ public function getVoterCard_FNM(Request $request){
 
      
   } 
+
+
+  public function listVoterCardResult(Request $request){
+    $tableName = (new VoterCardImage())->getTable();
+    $constituencyIds = array_filter(array_map('trim', explode(',', (string) (auth()->user()->constituency_id ?? ''))));
+    $query = VoterCardImage::query()
+        ->leftJoin('voters', $tableName . '.reg_no', '=', 'voters.voter')
+        ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
+        ->with('user', 'voter')
+        ->select($tableName . '.*')
+        ->whereIn('voters.const', $constituencyIds)
+        ->orderBy($tableName . '.id', 'desc');
+
+    // Filter by voter_id if provided
+    if ($request->has('voter') && !empty($request->get('voter'))) {
+        $query->where($tableName . '.reg_no', 'like', '%' . $request->get('voter') . '%');
+    }
+    // Filter by party (exit_poll) if provided
+    $votingFor = $request->get('voting_for');
+    if ($votingFor !== null && $votingFor !== '') {
+        if (is_numeric($votingFor)) {
+            $party = Party::where('id', $votingFor)->first();
+        } else {
+            $party = Party::whereRaw('LOWER(short_name) = ?', [strtolower($votingFor)])->first();
+        }
+        if ($party) {
+            $partyShortName = strtolower($party->short_name);
+            $query->whereRaw('LOWER(' . $tableName . '.exit_poll) = ?', [$partyShortName]);
+        }
+    }
+
+    $voterCardImages = $query->get();
+
+    $columns = $request->has('columns')
+        ? array_map(function($column) {
+            return strtolower(urldecode(trim($column)));
+        }, explode(',', $request->get('columns')))
+        : [];
+    
+    $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
+    return Excel::download(new VotersCardResultExport($voterCardImages, $request, $columns), 'Voter Card Result_' . $timestamp . '.xlsx');  
+}
 }
