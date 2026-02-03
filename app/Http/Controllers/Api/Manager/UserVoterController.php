@@ -1740,8 +1740,8 @@ public function newlyRegistered(Request $request)
             ->join('constituencies', 'voters.const', '=', 'constituencies.id')
             ->whereIn('voters.const', $constituency_ids)
             // Use explicit boolean comparison compatible with PostgreSQL
-            ->where('voters.exists_in_database', '=', false)
-            ->where('voters.newly_registered', '=', true);
+            ->whereRaw('voters.exists_in_database IS FALSE')
+            ->whereRaw('voters.newly_registered IS TRUE');
 
         // Get pagination parameters
         $perPage = $request->input('per_page', 10);
@@ -1771,13 +1771,13 @@ public function newlyRegistered(Request $request)
 
         if (!empty($type) && $type === 'update') {
             $query->join('voter_history', 'voters.voter', '=', 'voter_history.voter_id');
-            $query->where('voters.newly_registered', '=', true);
+            $query->whereRaw('voters.newly_registered IS TRUE');
         }
 
         if ($existsInDatabase === 'true') {
-            $query->where('voters.exists_in_database', '=', true);
+            $query->whereRaw('voters.exists_in_database IS TRUE');
         } elseif ($existsInDatabase === 'false') {
-            $query->where('voters.exists_in_database', '=', false);
+            $query->whereRaw('voters.exists_in_database IS FALSE');
         } 
 
         if ($underAge25 === 'yes') {
