@@ -798,14 +798,22 @@ class VoterController extends Controller
             $partyId = $request->input('voting_for');
 
             if ($partyId) {
-                $party = \App\Models\Party::where('name', $partyId)->first();
-                if ($party && isset($party->short_name)) {
-                    $partyShortName = strtolower($party->short_name);
-                    $query->whereRaw('LOWER(vci.exit_poll) = ?', [$partyShortName]);
+
+                if (is_numeric($partyId)) {
+                    $party = Party::where('id', $partyId)->first();
                 } else {
-                    $query->whereRaw('1=0');
+                    $party = Party::whereRaw('LOWER(name) = ?', [strtolower($partyId)])->first();
                 }
-            }
+
+          
+               
+              if ($party && isset($party->short_name)) {
+                  $partyShortName = strtolower($party->short_name);
+                  $query->whereRaw('LOWER(vci.exit_poll) = ?', [$partyShortName]);
+              } else {
+                  $query->whereRaw('1=0');
+              }
+          }
 
             if ($advance_poll == 'yes') {
                 $query->where('voters.flagged', 1);
