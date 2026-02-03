@@ -1267,7 +1267,7 @@ class VoterController extends Controller
                 if (is_numeric($votingFor)) {
                     $get_party = Party::where('id', $votingFor)->first();
                 } else {
-                    $get_party = Party::whereRaw('LOWER(name) = ?', [strtolower($votingFor)])->first();
+                    $get_party = Party::whereRaw('LOWER(short_name) = ?', [strtolower($votingFor)])->first();
                 }
                 if ($get_party) {
                     $partyShortName = strtolower($get_party->short_name);
