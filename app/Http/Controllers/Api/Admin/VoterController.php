@@ -1071,8 +1071,8 @@ class VoterController extends Controller
                 } else {
                     $party = Party::whereRaw('LOWER(name) = ?', [strtolower($partyId)])->first();
                 }
-                if ($party && isset($party->name)) {
-                    $partyShortName = strtolower($party->name);
+                if ($party && isset($party->short_name)) {
+                    $partyShortName = strtolower($party->short_name);
                     $query->whereRaw('LOWER(vci.exit_poll) = ?', [$partyShortName]);
                 }  
             }
