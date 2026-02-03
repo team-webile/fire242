@@ -450,11 +450,13 @@ class SurveyController extends Controller
 
         if ($existsInDatabase === 'true') {
             $query->whereHas('voter', function($q) use ($existsInDatabase) {
-                $q->where('voters.exists_in_database', true);
+                $q->where('voters.exists_in_database IS TRUE');
+                
+                
             });
         } elseif ($existsInDatabase === 'false') {
             $query->whereHas('voter', function($q) use ($existsInDatabase) {
-                $q->where('voters.exists_in_database', false);
+                $q->where('voters.exists_in_database IS FALSE');
             });
         }
         if ($request->has('voting_decision')) {
