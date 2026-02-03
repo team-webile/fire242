@@ -469,7 +469,7 @@ class SurveyController extends Controller
 
             if ($get_party) {
                 $voting_for = $get_party->name;
-                $query->where('ls.voting_for', $voting_for);
+                $query->where('voting_for', $voting_for);
             }
         }
 
