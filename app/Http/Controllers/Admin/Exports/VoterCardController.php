@@ -117,8 +117,17 @@ class VoterCardController extends Controller
             $query->where($tableName . '.reg_no', 'like', '%' . $request->get('voter') . '%');
         }
         // Filter by party (exit_poll) if provided
-        if ($request->has('voting_for') && !empty($request->get('voting_for'))) {
-            $query->whereRaw('LOWER(' . $tableName . '.exit_poll) = ?', [strtolower($request->get('voting_for'))]);
+        $votingFor = $request->get('voting_for');
+        if ($votingFor !== null && $votingFor !== '') {
+            if (is_numeric($votingFor)) {
+                $party = Party::where('id', $votingFor)->first();
+            } else {
+                $party = Party::whereRaw('LOWER(name) = ?', [strtolower($votingFor)])->first();
+            }
+            if ($party) {
+                $partyShortName = strtolower($party->short_name);
+                $query->whereRaw('LOWER(' . $tableName . '.exit_poll) = ?', [$partyShortName]);
+            }
         }
   
         $voterCardImages = $query->get();
@@ -203,12 +212,16 @@ class VoterCardController extends Controller
         $export = $request->input('export');
 
         $partyId = $request->input('voting_for');
-        if ($partyId) {
-            $partyId = Party::where('name', $partyId)->first();
-            if ($partyId) {
-                $partyShortName = strtolower($partyId->short_name);
-                $query->whereRaw('LOWER(vci.exit_poll) = ?', [$partyShortName]);
+        if ($partyId !== null && $partyId !== '') {
+            if (is_numeric($partyId)) {
+                $party = Party::where('id', $partyId)->first();
+            } else {
+                $party = Party::whereRaw('LOWER(name) = ?', [strtolower($partyId)])->first();
             }
+            if ($party) {
+                $partyShortName = strtolower($party->short_name);
+                $query->whereRaw('LOWER(vci.exit_poll) = ?', [$partyShortName]);
+            }  
         }
 
         if ($advance_poll == 'yes') {
