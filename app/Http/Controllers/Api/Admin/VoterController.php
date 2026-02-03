@@ -1058,10 +1058,16 @@ class VoterController extends Controller
             $export = $request->input('export');
 
             $partyId = $request->input('voting_for');
-            if ($partyId) {
-                $partyId = Party::where('name', $partyId)->first();
-                $partyShortName = strtolower($partyId->short_name);
-                $query->whereRaw('LOWER(vci.exit_poll) = ?', [$partyShortName]);
+            if ($partyId) { 
+                if (is_numeric($partyId)) {
+                    $party = Party::where('id', $partyId)->first();
+                } else {
+                    $party = Party::whereRaw('LOWER(name) = ?', [strtolower($partyId)])->first();
+                }
+                if ($party && isset($party->name)) {
+                    $partyShortName = strtolower($party->name);
+                    $query->whereRaw('LOWER(vci.exit_poll) = ?', [$partyShortName]);
+                }  
             }
 
             if ($advance_poll == 'yes') {
