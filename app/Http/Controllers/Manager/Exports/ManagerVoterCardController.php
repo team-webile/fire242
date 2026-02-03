@@ -5,8 +5,9 @@ namespace App\Http\Controllers\Manager\Exports;
 use App\Http\Controllers\Controller;
 use App\Models\Voter;
 use App\Models\VoterCardImage;
-use App\Models\VoterCard;
+use App\Models\Party;
 use Illuminate\Http\Request;
+use App\Exports\VotersCardResultExport;
 use App\Exports\VotersCardExport;
 use Maatwebsite\Excel\Facades\Excel;
 class ManagerVoterCardController extends Controller 
