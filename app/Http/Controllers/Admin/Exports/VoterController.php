@@ -260,11 +260,19 @@ class VoterController extends Controller
 
             $polling = $request->input('polling');
 
-            if( $voting_for !== null && $voting_for !== ''){
-            
-                $get_party = Party::where('id', $voting_for)->first();
-                $voting_for = $get_party->name;
-                $query->where('surveys.voting_for', $voting_for);
+            if ($voting_for !== null && $voting_for !== '') {
+                // Check if voting_for is numeric (ID) or a string (name)
+                if (is_numeric($voting_for)) {
+                    $get_party = Party::where('id', $voting_for)->first();
+                } else {
+                    // Search by name (case-insensitive)
+                    $get_party = Party::whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first();
+                }
+                
+                if ($get_party) {
+                    $voting_for = $get_party->name;
+                    $query->where('ls.voting_for', $voting_for);
+                }
             }
             if($is_died !== null && $is_died !== ''){
                 $query->where('surveys.is_died', $is_died);
