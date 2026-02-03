@@ -484,14 +484,20 @@ public function getDiedVotersInSurvey(Request $request)
         'voting_for' => 'Voting For'
     ];  
 
-    // Apply voting_for filter
     if ($voting_for !== null && $voting_for !== '') {
-        $get_party = Party::where('id', $voting_for)->first();
+        // Check if voting_for is numeric (ID) or a string (name)
+        if (is_numeric($voting_for)) {
+            $get_party = Party::where('id', $voting_for)->first();
+        } else {
+            // Search by name (case-insensitive)
+            $get_party = Party::whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first();
+        }
+        
         if ($get_party) {
-            $query->where('ls.voting_for', $get_party->name);
+            $voting_for = $get_party->name;
+            $query->where('ls.voting_for', $voting_for);
         }
     }
-
     if ($is_died !== null && $is_died !== '') {
         $query->where('ls.is_died', $is_died);
     }
