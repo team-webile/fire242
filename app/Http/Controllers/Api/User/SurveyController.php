@@ -435,6 +435,7 @@ class SurveyController extends Controller
 
         $existsInDatabase = $request->input('exists_in_database');
         $challenge = $request->input('challenge');
+        $voting_for = $request->input('voting_for');
         $query = Survey::with('voter');
 
         if ($challenge === 'true') {
