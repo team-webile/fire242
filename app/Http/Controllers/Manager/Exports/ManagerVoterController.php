@@ -202,7 +202,7 @@ class ManagerVoterController  extends Controller
 
             if( $voting_for !== null && $voting_for !== ''){
                 
-                $get_party = Party::whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first();
+                $get_party = Party::where('id', $voting_for)->first();
                 $voting_for = $get_party->name;
                 $query->where('surveys.voting_for', $voting_for);
             }

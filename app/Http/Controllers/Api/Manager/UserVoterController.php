@@ -342,7 +342,7 @@ public function getVotersInSurvey(Request $request)
 
     // Apply voting_for filter
     if ($voting_for !== null && $voting_for !== '') {
-        $get_party = Party::whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first();
+        $get_party = Party::where('id', $voting_for)->first();
         if ($get_party) {
             $voting_for = $get_party->name;
             $query->where('ls.voting_for', $voting_for);
