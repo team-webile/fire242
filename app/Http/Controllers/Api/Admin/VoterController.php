@@ -993,6 +993,13 @@ class VoterController extends Controller
             ], 403);
         }
 
+        if ($request->input('clear_all') === 'true') {
+            Cache::flush();
+            return response()->json([
+                'success' => true,
+                'message' => 'All cache cleared successfully'
+            ]);
+        }
         // Generate cache key based on all request parameters
         $cacheKey = 'election_day_report_one_' . md5(json_encode($request->all()) . '_' . $request->get('per_page', 20));
         
