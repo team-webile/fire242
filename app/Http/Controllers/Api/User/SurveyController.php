@@ -460,16 +460,20 @@ class SurveyController extends Controller
             $query->where('voting_decision',$request->voting_decision);
         }
 
-        if($request->has('voting_for') && $request->has('voting_for') !== ''){
-           
-            $get_party = Party::where('id', $request->voting_for)->first();
+        if ($voting_for !== null && $voting_for !== '') {
+            // Check if voting_for is numeric (ID) or a string (name)
+            if (is_numeric($voting_for)) {
+                $get_party = Party::where('id', $voting_for)->first();
+            } else {
+                // Search by name (case-insensitive)
+                $get_party = Party::whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first();
+            }
             
-            $party_name = $get_party->name;
-            
-            $query->where('voting_for', $party_name); 
-             
-       }
-
+            if ($get_party) {
+                $voting_for = $get_party->name;
+                $query->where('ls.voting_for', $voting_for);
+            }
+        }
          
         if($request->has('is_died')){
             $query->where('is_died',$request->is_died); 
