@@ -1166,7 +1166,7 @@ class ManagerVoterCardController extends Controller
              
               if ($partyId) {
                   $party = Party::where('name', $partyId)->first();
-                  dd($party->short_name); 
+                  dd($party); 
                   if ($party && isset($party->short_name)) {
                       $partyShortName = strtolower($party->short_name);
                       $query->whereRaw('LOWER(vci.exit_poll) = ?', [$partyShortName]);
