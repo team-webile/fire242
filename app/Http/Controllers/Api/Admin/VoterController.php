@@ -315,22 +315,18 @@ class VoterController extends Controller
         // }
 
         if ($partyId) {
-
             if (is_numeric($partyId)) {
                 $party = Party::where('id', $partyId)->first();
             } else {
                 $party = Party::whereRaw('LOWER(name) = ?', [strtolower($partyId)])->first();
             }
 
-            
-
             if ($party && isset($party->short_name)) {
                 $partyShortName = strtolower($party->short_name);
                 $query->whereRaw('LOWER(ls.voting_for) = ?', [$partyShortName]);
-            } else {
-                $query->whereRaw('1=0');
             }
-        } 
+        }
+
 
 
             if ($haveCorrectPhone == 'yes') {
