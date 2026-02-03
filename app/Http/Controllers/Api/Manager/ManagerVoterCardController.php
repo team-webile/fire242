@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Voter;
+use App\Models\Party;
 use App\Models\VoterCard; 
 use DB;
 use App\Models\VoterCardImage;
@@ -1113,6 +1114,14 @@ class ManagerVoterCardController extends Controller
       public function electionDayGraph(Request $request)
       { 
            
+        if ($request->input('clear_all') === 'true') {
+            Cache::flush();
+            return response()->json([
+                'success' => true,
+                'message' => 'All cache cleared successfully'
+            ]);
+        }
+
           // Cache graph per filter set to reduce DB load; 5-minute TTL
           $cacheKey = 'election_day_graph_' . md5(json_encode($request->all()));
           $payload = Cache::rememberForever($cacheKey, function () use ($request) {
