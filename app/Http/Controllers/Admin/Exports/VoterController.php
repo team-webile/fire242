@@ -397,25 +397,38 @@ class VoterController extends Controller
        $died_date = $request->input('died_date');
        $existsInDatabase = $request->input('exists_in_database');
 
-      
-
-
-       // Subquery to get the latest survey for each voter
+       // OPTIMIZED: Use DISTINCT ON subquery to get only the latest survey per voter
        $latestSurveySubquery = DB::table('surveys')
-           ->select('voter_id', DB::raw('MAX(id) as latest_survey_id'))
-           ->groupBy('voter_id');
+           ->selectRaw('DISTINCT ON (voter_id) 
+               voter_id,
+               id,
+               created_at,
+               user_id,
+               located,
+               voting_decision,
+               voting_for,
+               is_died,
+               died_date')
+           ->orderBy('voter_id')
+           ->orderBy('id', 'desc');
 
-       $query = Voter::with('user')
-           ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date','surveys.user_id','surveys.located','surveys.voting_decision','surveys.voting_for','surveys.is_died','surveys.died_date')
+       $query = Voter::query()
+           ->select(
+               'voters.*',
+               'constituencies.name as constituency_name',
+               'ls.id as survey_id',
+               'ls.created_at as survey_date',
+               'ls.user_id',
+               'ls.located',
+               'ls.voting_decision',
+               'ls.voting_for',
+               'ls.is_died',
+               'ls.died_date'
+           )
            ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
-           ->joinSub($latestSurveySubquery, 'latest_surveys', function($join) {
-               $join->on('voters.id', '=', 'latest_surveys.voter_id');
-           })
-           ->join('surveys', 'surveys.id', '=', 'latest_surveys.latest_survey_id')
-           ->where('surveys.is_died', 1)
-           ->orderBy('surveys.id', 'desc');
-
-        // Apply search filters
+           ->joinSub($latestSurveySubquery, 'ls', 'ls.voter_id', '=', 'voters.id')
+           ->where('ls.is_died', 1)
+           ->orderBy('ls.id', 'desc');
 
         $searchableFields = [
             'first_name' => 'First Name',
@@ -435,25 +448,23 @@ class VoterController extends Controller
 
         $polling = $request->input('polling');
 
-        if( $voting_for !== null && $voting_for !== ''){
-            // Check if voting_for is numeric (ID) or a string (name)
+        // Apply voting_for filter
+        if ($voting_for !== null && $voting_for !== '') {
             if (is_numeric($voting_for)) {
                 $get_party = Party::where('id', $voting_for)->first();
             } else {
-                // Search by name (case-insensitive)
                 $get_party = Party::whereRaw('LOWER(name) = ?', [strtolower($voting_for)])->first();
             }
-            
             if ($get_party) {
-                $voting_for = $get_party->name;
-                $query->where('surveys.voting_for', $voting_for);
+                $query->where('ls.voting_for', $get_party->name);
             }
-       }
-        if($is_died !== null && $is_died !== ''){
-            $query->where('surveys.is_died', $is_died);
         }
-        if($died_date !== null && $died_date !== ''){
-            $query->where('surveys.died_date', $died_date);
+        
+        if ($is_died !== null && $is_died !== '') {
+            $query->where('ls.is_died', $is_died);
+        }
+        if ($died_date !== null && $died_date !== '') {
+            $query->where('ls.died_date', $died_date);
         }
         if ($existsInDatabase === 'true') {
             $query->where('voters.exists_in_database', true);
@@ -461,34 +472,30 @@ class VoterController extends Controller
             $query->where('voters.exists_in_database', false);
         }
 
-        // Apply filters
         if (!empty($voting_decision)) {
-            $query->where('surveys.voting_decision', $voting_decision);
+            $query->where('ls.voting_decision', $voting_decision);
         }
 
         if (!empty($located)) {
-            $query->whereRaw('LOWER(surveys.located) = ?', [strtolower($located)]);
+            $query->whereRaw('LOWER(ls.located) = ?', [strtolower($located)]);
         }
         if (!empty($polling) && is_numeric($polling)) {
             $query->where('voters.polling', $polling);
         }
-        $underAge25 = $request->input('under_age_25');
         if ($underAge25 === 'yes') {
             $query->whereRaw('EXTRACT(YEAR FROM AGE(CURRENT_DATE, voters.dob)) < 25');
         }
        
         if (isset($request->user_id) && !empty($request->user_id)) {
-      
-            $query->where('surveys.user_id',$request->user_id);
+            $query->where('ls.user_id', $request->user_id);
         }
 
-        // Get search parameters
         if (isset($request->start_date) && !empty($request->start_date)) {
-            $query->where('surveys.died_date', '>=', $request->start_date . ' 00:00:00');
+            $query->where('ls.died_date', '>=', $request->start_date . ' 00:00:00');
         }
 
         if (isset($request->end_date) && !empty($request->end_date)) {
-            $query->where('surveys.died_date', '<=', $request->end_date . ' 23:59:59');
+            $query->where('ls.died_date', '<=', $request->end_date . ' 23:59:59');
         }
 
        if (!empty($surname)) {
@@ -503,25 +510,23 @@ class VoterController extends Controller
            $query->whereRaw('LOWER(voters.second_name) LIKE ?', ['%' . strtolower($secondName) . '%']);
        }
 
-       
        $query->where(function($q) use ($houseNumber, $address, $pobse, $pobis, $pobcn) {
         if ($houseNumber !== null && $houseNumber !== '') {
             $q->whereRaw('LOWER(voters.house_number) = ?', [strtolower($houseNumber)]);
         }
         if ($address !== null && $address !== '') {
-            $q->WhereRaw('LOWER(voters.address) = ?', [strtolower($address)]);
+            $q->whereRaw('LOWER(voters.address) = ?', [strtolower($address)]);
         }
         if ($pobse !== null && $pobse !== '') {
-            $q->WhereRaw('LOWER(voters.pobse) = ?', [strtolower($pobse)]);
+            $q->whereRaw('LOWER(voters.pobse) = ?', [strtolower($pobse)]);
         }
         if ($pobis !== null && $pobis !== '') {
-            $q->WhereRaw('LOWER(voters.pobis) = ?', [strtolower($pobis)]);
+            $q->whereRaw('LOWER(voters.pobis) = ?', [strtolower($pobis)]);
         }
         if ($pobcn !== null && $pobcn !== '') {
-            $q->WhereRaw('LOWER(voters.pobcn) = ?', [strtolower($pobcn)]);
+            $q->whereRaw('LOWER(voters.pobcn) = ?', [strtolower($pobcn)]);
         }
     }); 
-
 
        if (!empty($voterId) && is_numeric($voterId)) {
            $query->where('voters.voter', $voterId);
@@ -533,9 +538,9 @@ class VoterController extends Controller
 
        if (!empty($constituencyId) && is_numeric($constituencyId)) {
             $query->where('voters.const', $constituencyId);
-    }
+       }
 
-       // Get paginated results
+       // Get results - one voter per row (latest survey only)
        $voters = $query->get();
 
        $columns = array_map(function($column) {
