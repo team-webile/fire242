@@ -1722,146 +1722,146 @@ public function getVotersDiffAddress(Request $request)
     }
 }
 
-public function newlyRegistered(Request $request)
+
+
+public function newlyRegistered(Request $request)   
 {
-    try {
-        // Get authenticated user's constituency_id and split into array
-        $constituency_ids = explode(',', auth()->user()->constituency_id);
+    $constituency_ids = explode(',', auth()->user()->constituency_id);
 
-        if (empty($constituency_ids)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User does not have an assigned constituency'
-            ], 400);
-        }
+    $query = Voter::query()
+    ->select('voters.*', 'constituencies.name as constituency_name')
+    ->join('constituencies', 'voters.const', '=', 'constituencies.id')
+    ->whereIn('voters.const', $constituency_ids);
 
-        $query = Voter::query()
-            ->select('voters.*', 'constituencies.name as constituency_name')
-            ->join('constituencies', 'voters.const', '=', 'constituencies.id')
-            ->whereIn('voters.const', $constituency_ids)
-            // Use explicit boolean comparison compatible with PostgreSQL
-            ->whereRaw('voters.exists_in_database IS FALSE')
-            ->whereRaw('voters.newly_registered IS TRUE');
+    // Search fields - including all fillable columns
+    $searchableFields = [
+        'first_name' => 'First Name',
+        'second_name' => 'Second Name',
+        'surname' => 'Surname', 
+        'address' => 'Address',
+        'voter' => 'Voter ID',
+        'const' => 'Constituency ID',
+        'constituency_name' => 'Constituency Name',
+        'under_age_25' => 'Under 25',
+        'polling' => 'Polling Station',
+        'house_number' => 'House Number',
+        'pobse' => 'Place of Birth',
+        'pobis' => 'Island',
+        'pobcn' => 'Country'
+    ];  
 
-        // Get pagination parameters
-        $perPage = $request->input('per_page', 10);
+    // Get search parameters
+    $const = $request->input('const');
+    $surname = $request->input('surname');
+    $firstName = $request->input('first_name');
+    $secondName = $request->input('second_name');
+    $address = $request->input('address');
+    $voterId = $request->input('voter');
+    $constituencyName = $request->input('constituency_name');
+    $constituencyId = $request->input('const');
+    $underAge25 = $request->input('under_age_25');
+    $polling = $request->input('polling');
+    $houseNumber = $request->input('house_number');
+    $pobse = $request->input('pobse');
+    $pobis = $request->input('pobis');
+    $pobcn = $request->input('pobcn');
+    $type = $request->input('type');
+    $existsInDatabase = $request->input('exists_in_database');
 
-        // Add search filters
-        $firstName = $request->input('first_name');
-        $secondName = $request->input('second_name');
-        $surname = $request->input('surname');
-        $address = $request->input('address');
-        $voterId = $request->input('voter_id');
-        $const = $request->input('const');
-        $constituencyName = $request->input('constituency_name');
-        $underAge25 = $request->input('under_age_25');
-        $polling = $request->input('polling');
-        $pobse = $request->input('pobse');
-        $pobis = $request->input('pobis');
-        $pobcn = $request->input('pobcn'); 
-        $houseNumber = $request->input('house_number');
-        $type = $request->input('type');
-        $existsInDatabase = $request->input('exists_in_database');
 
-        // Apply filters
-        if (!empty($type) && $type === 'new') {
-            $query->leftJoin('voter_history', 'voters.voter', '=', 'voter_history.voter_id')
-                ->whereNull('voter_history.voter_id'); // Ensures no match in voter_history
-        }
-
-        if (!empty($type) && $type === 'update') {
-            $query->join('voter_history', 'voters.voter', '=', 'voter_history.voter_id');
-            $query->whereRaw('voters.newly_registered IS TRUE');
-        }
-
-        if ($existsInDatabase === 'true') {
-            $query->whereRaw('voters.exists_in_database IS TRUE');
-        } elseif ($existsInDatabase === 'false') {
-            $query->whereRaw('voters.exists_in_database IS FALSE');
-        } 
-
-        if ($underAge25 === 'yes') {
-            $query->whereRaw('EXTRACT(YEAR FROM AGE(CURRENT_DATE, voters.dob)) < 25');
-        }
-        if (!empty($surname)) {
-            $query->whereRaw('LOWER(voters.surname) LIKE ?', ['%' . strtolower($surname) . '%']);
-        }
-
-        if (!empty($firstName)) {
-            $query->whereRaw('LOWER(voters.first_name) LIKE ?', ['%' . strtolower($firstName) . '%']);
-        }
-
-        if (!empty($secondName)) {
-            $query->whereRaw('LOWER(voters.second_name) LIKE ?', ['%' . strtolower($secondName) . '%']);
-        }
-
-        if (!empty($polling)) {
-            $query->where('voters.polling', $polling);
-        }
-        
-        $query->where(function($q) use ($houseNumber, $address, $pobse, $pobis, $pobcn) {
-            if ($houseNumber !== null && $houseNumber !== '') {
-                $q->whereRaw('LOWER(voters.house_number) = ?', [strtolower($houseNumber)]);
-            }
-            if ($address !== null && $address !== '') {
-                $q->whereRaw('LOWER(voters.address) = ?', [strtolower($address)]);
-            }
-            if ($pobse !== null && $pobse !== '') {
-                $q->whereRaw('LOWER(voters.pobse) = ?', [strtolower($pobse)]);
-            }
-            if ($pobis !== null && $pobis !== '') {
-                $q->whereRaw('LOWER(voters.pobis) = ?', [strtolower($pobis)]);
-            }
-            if ($pobcn !== null && $pobcn !== '') {
-                $q->whereRaw('LOWER(voters.pobcn) = ?', [strtolower($pobcn)]);
-            }
-        }); 
-
-        if (!empty($voterId) && is_numeric($voterId)) {
-            $query->where('voters.voter', $voterId);
-        }
-
-        if (!empty($const)) {
-            $query->where('voters.const', $const);
-        }
-
-        if (!empty($constituencyName)) {
-            $query->whereRaw('LOWER(constituencies.name) LIKE ?', ['%' . strtolower($constituencyName) . '%']);
-        }
-
-        // Add sorting
-        $sortBy = $request->input('sort_by', 'voters.surname');
-        $sortOrder = $request->input('sort_order', 'asc');
-        $query->orderBy($sortBy, $sortOrder);
-
-        // Get paginated results
-        $voters = $query->paginate($perPage);
-
-        // Define searchable parameters
-        $searchableParameters = [
-            'first_name' => 'First Name',
-            'second_name' => 'Second Name', 
-            'surname' => 'Surname',
-            'address' => 'Address',
-            'voter_id' => 'Voter ID',
-            'const' => 'Constituency Id',
-            'constituency_name' => 'Constituency Name'
-        ];
-
-        return response()->json([
-            'success' => true,
-            'data' => $voters,
-            'searchable_parameters' => $searchableParameters
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Error retrieving voters list',
-            'error' => $e->getMessage()
-        ], 500);
+    // Apply filters
+    if (!empty($type) && $type === 'new') {
+        $query->leftJoin('voter_history', 'voters.voter', '=', 'voter_history.voter_id')
+              ->whereNull('voter_history.voter_id'); // Ensures no match in voter_history
     }
-}
+
+    if (!empty($type) && $type === 'update') {
+        $query->join('voter_history', 'voters.voter', '=', 'voter_history.voter_id');
+        $query->where('voters.newly_registered', true);
+    }
+
+    
+    if (!empty($polling) && is_numeric($polling)) {
+        $query->where('voters.polling', $polling);
+    }
+
+
+    if ($underAge25 === 'yes') {
+        $query->whereRaw('EXTRACT(YEAR FROM AGE(CURRENT_DATE, voters.dob)) < 25');
+    }
+
+    // Apply exists_in_database filter
+    // Note: exists_in_database is stored as INTEGER (int4) in database, not boolean
+    // So we must use integer values (0 or 1) for comparison
+    if ($existsInDatabase === 'true' || $existsInDatabase === '1' || $existsInDatabase === 1) {
+        $query->where('voters.exists_in_database', 1);
+    } elseif ($existsInDatabase === 'false' || $existsInDatabase === '0' || $existsInDatabase === 0) {
+        $query->where('voters.exists_in_database', 0);
+    }
+
+    // Apply filters
+    if (!empty($const)) {
+        $query->where('voters.const', $const);
+    }
+    if (!empty($surname)) {
+        $query->whereRaw('LOWER(voters.surname) LIKE ?', ['%' . strtolower($surname) . '%']);
+    }
+
+    if (!empty($firstName)) {
+        $query->whereRaw('LOWER(voters.first_name) LIKE ?', ['%' . strtolower($firstName) . '%']);
+    }
+
+    if (!empty($secondName)) {
+        $query->whereRaw('LOWER(voters.second_name) LIKE ?', ['%' . strtolower($secondName) . '%']);
+    }
+
+    
+    $query->where(function($q) use ($houseNumber, $address, $pobse, $pobis, $pobcn) {
+        if ($houseNumber !== null && $houseNumber !== '') {
+            $q->whereRaw('LOWER(voters.house_number) = ?', [strtolower($houseNumber)]);
+        }
+        if ($address !== null && $address !== '') {
+            $q->whereRaw('LOWER(voters.address) = ?', [strtolower($address)]);
+        }
+        if ($pobse !== null && $pobse !== '') {
+            $q->whereRaw('LOWER(voters.pobse) = ?', [strtolower($pobse)]);
+        }
+        if ($pobis !== null && $pobis !== '') {
+            $q->whereRaw('LOWER(voters.pobis) = ?', [strtolower($pobis)]);
+        }
+        if ($pobcn !== null && $pobcn !== '') {
+            $q->whereRaw('LOWER(voters.pobcn) = ?', [strtolower($pobcn)]);
+        }
+    }); 
+
+
+    if (!empty($voterId) && is_numeric($voterId)) {
+        $query->where('voters.voter', $voterId);
+    }
+
+    if (!empty($constituencyName)) {
+        $query->whereRaw('LOWER(constituencies.name) LIKE ?', ['%' . strtolower($constituencyName) . '%']);
+    }
+
+    if (!empty($constituencyId)) {
+        $query->where('voters.const', $constituencyId);
+    }
+
+    // Get paginated results
+    // Fixed: Use whereRaw with boolean literal directly for PostgreSQL boolean column
+    $voters = $query->orderBy('id', 'desc')
+        ->whereRaw('voters.newly_registered = true')
+        ->paginate($request->get('per_page', 20)); // Default to 20 items per page if not specified
+    
+    return response()->json([
+        'success' => true,
+        'data' => $voters,
+        'searchable_fields' => $searchableFields,
+    ]); 
+} 
+
+
+ 
 
 public function getVotersHistory($id)
 {
