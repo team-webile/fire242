@@ -756,6 +756,14 @@ class VoterController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
+        if ($request->input('clear_all') === 'true') {
+            Cache::flush();
+            return response()->json([
+                'success' => true,
+                'message' => 'All cache cleared successfully'
+            ]);
+        }
+
         // Cache graph per filter set to reduce DB load; 5-minute TTL
         $cacheKey = 'election_day_graph_' . md5(json_encode($request->all()));
         $payload = Cache::rememberForever($cacheKey, function () use ($request) {
