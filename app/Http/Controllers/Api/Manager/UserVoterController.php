@@ -1739,8 +1739,9 @@ public function newlyRegistered(Request $request)
             ->select('voters.*', 'constituencies.name as constituency_name')
             ->join('constituencies', 'voters.const', '=', 'constituencies.id')
             ->whereIn('voters.const', $constituency_ids)
-            ->where('voters.exists_in_database', false)
-            ->where('voters.newly_registered', 1);
+            // Use explicit boolean comparison compatible with PostgreSQL
+            ->where('voters.exists_in_database', '=', false)
+            ->where('voters.newly_registered', '=', true);
 
         // Get pagination parameters
         $perPage = $request->input('per_page', 10);
@@ -1762,27 +1763,23 @@ public function newlyRegistered(Request $request)
         $type = $request->input('type');
         $existsInDatabase = $request->input('exists_in_database');
 
-
-          // Apply filters
-          if (!empty($type) && $type === 'new') {
+        // Apply filters
+        if (!empty($type) && $type === 'new') {
             $query->leftJoin('voter_history', 'voters.voter', '=', 'voter_history.voter_id')
-                  ->whereNull('voter_history.voter_id'); // Ensures no match in voter_history
+                ->whereNull('voter_history.voter_id'); // Ensures no match in voter_history
         }
-         
 
         if (!empty($type) && $type === 'update') {
             $query->join('voter_history', 'voters.voter', '=', 'voter_history.voter_id');
-            $query->where('voters.newly_registered', true);
+            $query->where('voters.newly_registered', '=', true);
         }
 
         if ($existsInDatabase === 'true') {
-            $query->where('voters.exists_in_database', true);
+            $query->where('voters.exists_in_database', '=', true);
         } elseif ($existsInDatabase === 'false') {
-            $query->where('voters.exists_in_database', false);
+            $query->where('voters.exists_in_database', '=', false);
         } 
 
-
-        
         if ($underAge25 === 'yes') {
             $query->whereRaw('EXTRACT(YEAR FROM AGE(CURRENT_DATE, voters.dob)) < 25');
         }
@@ -1798,7 +1795,6 @@ public function newlyRegistered(Request $request)
             $query->whereRaw('LOWER(voters.second_name) LIKE ?', ['%' . strtolower($secondName) . '%']);
         }
 
-       
         if (!empty($polling)) {
             $query->where('voters.polling', $polling);
         }
@@ -1808,16 +1804,16 @@ public function newlyRegistered(Request $request)
                 $q->whereRaw('LOWER(voters.house_number) = ?', [strtolower($houseNumber)]);
             }
             if ($address !== null && $address !== '') {
-                $q->WhereRaw('LOWER(voters.address) = ?', [strtolower($address)]);
+                $q->whereRaw('LOWER(voters.address) = ?', [strtolower($address)]);
             }
             if ($pobse !== null && $pobse !== '') {
-                $q->WhereRaw('LOWER(voters.pobse) = ?', [strtolower($pobse)]);
+                $q->whereRaw('LOWER(voters.pobse) = ?', [strtolower($pobse)]);
             }
             if ($pobis !== null && $pobis !== '') {
-                $q->WhereRaw('LOWER(voters.pobis) = ?', [strtolower($pobis)]);
+                $q->whereRaw('LOWER(voters.pobis) = ?', [strtolower($pobis)]);
             }
             if ($pobcn !== null && $pobcn !== '') {
-                $q->WhereRaw('LOWER(voters.pobcn) = ?', [strtolower($pobcn)]);
+                $q->whereRaw('LOWER(voters.pobcn) = ?', [strtolower($pobcn)]);
             }
         }); 
 
@@ -1829,11 +1825,9 @@ public function newlyRegistered(Request $request)
             $query->where('voters.const', $const);
         }
 
-        
         if (!empty($constituencyName)) {
             $query->whereRaw('LOWER(constituencies.name) LIKE ?', ['%' . strtolower($constituencyName) . '%']);
         }
-
 
         // Add sorting
         $sortBy = $request->input('sort_by', 'voters.surname');
