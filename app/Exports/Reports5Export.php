@@ -102,6 +102,8 @@ class Reports5Export implements FromCollection, WithHeadings, WithStyles
         }
 
         // grand totals row (like Report 4 screenshot)
+        // Grand totals row: only show totals for these columns:
+        // Total Voters, Surveyed Voters, Not Surveyed, Surveyed %
         $totalsRow = [
             'polling_division' => 'TOTALS',
             'constituency_id' => '',
@@ -110,16 +112,8 @@ class Reports5Export implements FromCollection, WithHeadings, WithStyles
             'surveyed_voters' => $surveyedSum,
             'not_surveyed_voters' => $notSurveyedSum,
             'surveyed_percentage' => $totalVotersSum > 0 ? round(($surveyedSum * 100.0) / $totalVotersSum, 2) : 0,
-            'parties' => [],
+            // no 'parties' key so all party % columns stay blank
         ];
-
-        foreach ($partyCounts as $shortName => $count) {
-            $pct = $surveyedSum > 0 ? round(($count * 100.0) / $surveyedSum, 2) : 0;
-            $totalsRow['parties'][$shortName] = [
-                'count' => $count,
-                'percentage' => $pct,
-            ];
-        }
 
         $collection[] = $buildRow($totalsRow);
 
