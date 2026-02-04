@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Constituency;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Survey;
-use App\Exports\ManagerExport;
+use App\Exports\ManagerExport; 
 class ManagerUserController extends Controller
 {
      

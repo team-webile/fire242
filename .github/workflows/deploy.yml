@@ -25,4 +25,4 @@ jobs:
           username: ${{ secrets.USERNAME }}
           port: ${{ secrets.PORT }}
           key: ${{ secrets.SSHKEY }}
-          script: "cd /var/www/fire242 && ./.scripts/deploy.sh"
+          script: "cd /var/www/fire242 && bash ./.scripts/deploy.sh"
