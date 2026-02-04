@@ -1038,8 +1038,7 @@ class ConstituencyController extends Controller
      */
     public function getConstituencyReport5(Request $request)
     {
-
-       
+ 
 
         $existsInDatabase = $request->input('exists_in_database');
         $parties = DB::table('parties')
