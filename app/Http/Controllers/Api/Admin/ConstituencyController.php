@@ -1042,7 +1042,7 @@ class ConstituencyController extends Controller
 
         $existsInDatabase = $request->input('exists_in_database');
         $parties = DB::table('parties')
-            ->where('status', 'active')
+            ->where('status', 'active') 
             ->orderBy('position')
             ->get();
 
