@@ -34,7 +34,7 @@ class Reports5Export implements FromCollection, WithHeadings, WithStyles
     public function collection()
     {
         $collection = [];
-        foreach ($this->results as $row) {
+        $buildRow = function (array $row) {
             $dataRow = [];
             foreach ($this->columns as $column) {
                 $col = strtolower(trim($column));
@@ -78,8 +78,51 @@ class Reports5Export implements FromCollection, WithHeadings, WithStyles
                         }
                 }
             }
-            $collection[] = $dataRow;
+            return $dataRow;
+        };
+
+        $totalVotersSum = 0;
+        $surveyedSum = 0;
+        $notSurveyedSum = 0;
+        $partyCounts = [];
+
+        foreach ($this->results as $row) {
+            // normal data rows
+            $collection[] = $buildRow($row);
+
+            // accumulate for grand totals
+            $totalVotersSum += (int) ($row['total_voters'] ?? 0);
+            $surveyedSum += (int) ($row['surveyed_voters'] ?? 0);
+            $notSurveyedSum += (int) ($row['not_surveyed_voters'] ?? 0);
+            if (isset($row['parties'])) {
+                foreach ($row['parties'] as $shortName => $data) {
+                    $partyCounts[$shortName] = ($partyCounts[$shortName] ?? 0) + (int) ($data['count'] ?? 0);
+                }
+            }
         }
+
+        // grand totals row (like Report 4 screenshot)
+        $totalsRow = [
+            'polling_division' => 'TOTALS',
+            'constituency_id' => '',
+            'constituency_name' => '',
+            'total_voters' => $totalVotersSum,
+            'surveyed_voters' => $surveyedSum,
+            'not_surveyed_voters' => $notSurveyedSum,
+            'surveyed_percentage' => $totalVotersSum > 0 ? round(($surveyedSum * 100.0) / $totalVotersSum, 2) : 0,
+            'parties' => [],
+        ];
+
+        foreach ($partyCounts as $shortName => $count) {
+            $pct = $surveyedSum > 0 ? round(($count * 100.0) / $surveyedSum, 2) : 0;
+            $totalsRow['parties'][$shortName] = [
+                'count' => $count,
+                'percentage' => $pct,
+            ];
+        }
+
+        $collection[] = $buildRow($totalsRow);
+
         return collect($collection);
     }
 
