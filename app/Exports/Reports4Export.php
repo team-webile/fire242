@@ -32,7 +32,8 @@ class Reports4Export implements FromCollection, WithHeadings, WithStyles
         
         // Default columns if none specified
         if (empty($columns)) {
-            $columns = ['polling division', 'fnm', 'plp', 'coi', 'other', 'no vote', 'total', 'fnm %', 'plp %', 'coi %', 'other %', 'no vote %'];
+            $columns = ['polling division','total voters in polling',
+             'fnm', 'plp', 'coi', 'other', 'vote not surveyed', 'subtotal', 'fnm %', 'plp %', 'coi %', 'other %', 'no vote %'];
         }
         
         $this->results = $results;
@@ -53,6 +54,9 @@ class Reports4Export implements FromCollection, WithHeadings, WithStyles
                     case 'polling':
                         $dataRow[] = $row->polling_division ?? '';
                         break;
+                    case 'total voters in polling':
+                        $dataRow[] = $row->total_voters ?? 0;
+                        break;
                     case 'fnm':
                     case 'fnm count':
                         $dataRow[] = $row->fnm_count ?? 0;
@@ -69,13 +73,12 @@ class Reports4Export implements FromCollection, WithHeadings, WithStyles
                     case 'other count':
                         $dataRow[] = $row->other_count ?? 0;
                         break;
-                    case 'no vote':
-                    case 'no vote count':
-                        $dataRow[] = $row->no_vote_count ?? 0;
+                    case 'vote not surveyed':
+                    case 'vote not surveyed count':
+                        $dataRow[] = $row->no_vote_count ?? 0; 
                         break;
-                    case 'total':
-                    case 'total count':
-                    case 'total voters':
+                    case 'subtotal':
+                    case 'subtotal count':
                         $dataRow[] = $row->total_count ?? 0;
                         break;
                     case 'total party':
