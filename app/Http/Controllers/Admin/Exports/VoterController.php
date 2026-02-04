@@ -1021,18 +1021,16 @@ class VoterController extends Controller
 
 
        $living_constituency_name = $request->input('living_constituency_name');
-       $living_const = $request->input('living_const');
-      
-       if (isset($living_constituency_name) && !empty($living_constituency_name)) {
-           $query->whereHas('living_constituency', function ($q) use ($living_constituency_name) {
-               $q->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($living_constituency_name) . '%']);
-           });
-       }
-       if (isset($living_const) && !empty($living_const)) {
-           $query->where('voters.living_constituency', $living_const);
-       }
-
        
+       // Filter by living constituency name (explicit join so filter works reliably)
+       if ($living_constituency_name !== null && $living_constituency_name !== '' && trim($living_constituency_name) !== '') {
+           $query->join('constituencies as living_const', 'voters.living_constituency', '=', 'living_const.id')
+               ->whereRaw('LOWER(living_const.name) LIKE ?', ['%' . strtolower(trim($living_constituency_name)) . '%'])
+               ->select('voters.*'); // avoid duplicate columns from join
+       }
+       
+
+
 
        $partyId = $request->input('voting_for');
        // if ($partyId) {
