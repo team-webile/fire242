@@ -61,6 +61,17 @@ class VoterController extends Controller
         $isVoted = $request->input('is_voted');
         $advance_poll = $request->input('advance_poll');
         $export = $request->input('export');
+        $living_constituency_name = $request->input('living_constituency_name');
+        $living_const = $request->input('living_const');
+       
+        if (isset($living_constituency_name) && !empty($living_constituency_name)) {
+            $query->whereHas('living_constituency', function ($q) use ($living_constituency_name) {
+                $q->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($living_constituency_name) . '%']);
+            });
+        }
+        if (isset($living_const) && !empty($living_const)) {
+            $query->where('voters.living_constituency', $living_const);
+        }
 
         $partyId = $request->input('voting_for');
         // if ($partyId) {
