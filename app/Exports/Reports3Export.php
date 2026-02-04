@@ -37,15 +37,15 @@ class Reports3Export implements FromCollection, WithHeadings, WithStyles
     public function collection()
     {
         $collection = [];
-        foreach ($this->results as $constituency) {
+        $buildRow = function (array $constituency) {
             $row = [];
             foreach ($this->columns as $column) {
                 switch (strtolower($column)) {
                     case 'constituency id':
-                        $row[] = $constituency['constituency_id'];
+                        $row[] = $constituency['constituency_id'] ?? 'TOTALS';
                         break;
                     case 'constituency name':
-                        $row[] = $constituency['constituency_name'];
+                        $row[] = $constituency['constituency_name'] ?? '';
                         break;
                     case 'total voters':
                         $row[] = $constituency['total_voters'] ?? 0;
@@ -57,7 +57,8 @@ class Reports3Export implements FromCollection, WithHeadings, WithStyles
                         $row[] = $constituency['not_surveyed_voters'] ?? 0;
                         break;
                     case 'surveyed %':
-                        $row[] = $constituency['surveyed_percentage'] . '%';
+                        $pct = $constituency['surveyed_percentage'] ?? 0;
+                        $row[] = $pct . '%';
                         break;
                     case 'fnm %':
                         $row[] = isset($constituency['parties']['FNM']) ? $constituency['parties']['FNM']['percentage'] . '%' : '0.00%';
@@ -90,8 +91,50 @@ class Reports3Export implements FromCollection, WithHeadings, WithStyles
                         $row[] = '';
                 }
             }
-            $collection[] = $row;
+            return $row;
+        };
+
+        $totalVoters = 0;
+        $surveyed = 0;
+        $notSurveyed = 0;
+        $partyCounts = [];
+
+        foreach ($this->results as $constituency) {
+            $collection[] = $buildRow($constituency);
+
+            $totalVoters += (int) ($constituency['total_voters'] ?? 0);
+            $surveyed += (int) ($constituency['surveyed_voters'] ?? 0);
+            $notSurveyed += (int) ($constituency['not_surveyed_voters'] ?? 0);
+
+            if (isset($constituency['parties'])) {
+                foreach ($constituency['parties'] as $shortName => $data) {
+                    $partyCounts[$shortName] = ($partyCounts[$shortName] ?? 0) + (int) ($data['count'] ?? 0);
+                }
+            }
         }
+
+        if ($totalVoters > 0 || $surveyed > 0 || $notSurveyed > 0) {
+            $totals = [
+                'constituency_id' => 'TOTALS',
+                'constituency_name' => '',
+                'total_voters' => $totalVoters,
+                'surveyed_voters' => $surveyed,
+                'not_surveyed_voters' => $notSurveyed,
+                'surveyed_percentage' => $totalVoters > 0 ? round(($surveyed * 100.0) / $totalVoters, 2) : 0,
+                'parties' => [],
+            ];
+
+            foreach ($partyCounts as $shortName => $count) {
+                $pct = $surveyed > 0 ? round(($count * 100.0) / $surveyed, 2) : 0;
+                $totals['parties'][$shortName] = [
+                    'count' => $count,
+                    'percentage' => $pct,
+                ];
+            }
+
+            $collection[] = $buildRow($totals);
+        }
+
         return collect($collection);
     }
 
