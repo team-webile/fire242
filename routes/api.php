@@ -80,6 +80,7 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('getConstituencyReport1', [ConstituencyController::class, 'getConstituencyReport1']);
         Route::get('getConstituencyReport2', [ConstituencyController::class, 'getConstituencyReport2']);
         Route::get('getConstituencyReport4', [ConstituencyController::class, 'getConstituencyReport4']);
+        Route::get('getConstituencyReport5', [ConstituencyController::class, 'getConstituencyReport5']);
         Route::get('voter-cards-report', [ConstituencyController::class, 'voterCardsReport']);
 
 
@@ -366,6 +367,7 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('getConstituencyReport1', [ManagerVoterCardController::class, 'getConstituencyReport1']);
         Route::get('getConstituencyReport2', [ManagerVoterCardController::class, 'getConstituencyReport2']);
         Route::get('getConstituencyReport4', [ManagerVoterCardController::class, 'getConstituencyReport4']);
+        Route::get('getConstituencyReport5', [ManagerVoterCardController::class, 'getConstituencyReport5']);
 
         Route::get('voter-cards-fnm', [ManagerVoterCardController::class, 'getVoterCard_FNM']);
         Route::get('voter-cards-plp', [ManagerVoterCardController::class, 'getVoterCard_PLP']);

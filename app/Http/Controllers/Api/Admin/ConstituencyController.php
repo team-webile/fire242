@@ -1018,7 +1018,6 @@ class ConstituencyController extends Controller
             return $transformedRow;
         });
 
-        // Create a new paginator instance with the transformed data
         $paginatedResults = new \Illuminate\Pagination\LengthAwarePaginator(
             $results,
             $rawResults->total(),
@@ -1027,13 +1026,118 @@ class ConstituencyController extends Controller
             ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
         );
 
-        return response()->json([ 
+        return response()->json([
             'success' => true,
-            'message' => 'Constituencies retrieved successfully',
-            'data' => $paginatedResults
+            'message' => 'Constituency report 2 retrieved successfully',
+            'data' => $paginatedResults,
         ]);
-    } 
+    }
 
+    /**
+     * Report 5: Same columns as Report 2 but grouped by polling division (polling-based).
+     */
+    public function getConstituencyReport5(Request $request)
+    {
+        $existsInDatabase = $request->input('exists_in_database');
+        $parties = DB::table('parties')
+            ->where('status', 'active')
+            ->orderBy('position')
+            ->get();
+
+        $query = DB::table('voters as v')
+            ->leftJoin('constituencies as c', 'v.const', '=', 'c.id')
+            ->leftJoin(DB::raw("(
+                SELECT DISTINCT ON (voter_id) *
+                FROM surveys
+                ORDER BY voter_id, created_at DESC
+            ) as s"), 'v.id', '=', 's.voter_id');
+
+        if ($existsInDatabase === 'true') {
+            $query->where('v.exists_in_database', true);
+        } elseif ($existsInDatabase === 'false') {
+            $query->where('v.exists_in_database', false);
+        }
+        if ($request->has('constituency_id')) {
+            $query->where('v.const', $request->constituency_id);
+        }
+        if ($request->has('constituency_name')) {
+            $query->whereRaw('LOWER(c.name) LIKE ?', ['%' . strtolower($request->constituency_name) . '%']);
+        }
+
+        $selects = [
+            'v.polling as polling_division',
+            'c.id as constituency_id',
+            'c.name as constituency_name',
+            DB::raw('COUNT(DISTINCT v.id) as total_voters'),
+            DB::raw('COUNT(DISTINCT s.id) as surveyed_voters'),
+            DB::raw('COUNT(DISTINCT v.id) - COUNT(DISTINCT s.id) as not_surveyed_voters'),
+            DB::raw('ROUND((COUNT(DISTINCT s.id) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as surveyed_percentage'),
+        ];
+        foreach ($parties as $party) {
+            $partyName = $party->name;
+            $shortName = str_replace('-', '_', strtolower($party->short_name));
+            $selects[] = DB::raw("COUNT(DISTINCT CASE WHEN s.voting_for = '$partyName' THEN s.id END) as {$shortName}_count");
+            $selects[] = DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.voting_for = '$partyName' THEN s.id END) * 100.0) / NULLIF(COUNT(DISTINCT s.id), 0), 2) as {$shortName}_percentage");
+        }
+        $selects = array_merge($selects, [
+            DB::raw("COUNT(DISTINCT CASE WHEN s.sex = 'Male' THEN s.id END) as total_male_surveyed"),
+            DB::raw("COUNT(DISTINCT CASE WHEN s.sex = 'Female' THEN s.id END) as total_female_surveyed"),
+            DB::raw("COUNT(DISTINCT CASE WHEN s.sex IS NULL OR s.sex = '' THEN s.id END) as total_no_gender_surveyed"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.sex = 'Male' THEN s.id END) * 100.0) / NULLIF(COUNT(DISTINCT s.id), 0), 2) as male_percentage"),
+            DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.sex = 'Female' THEN s.id END) * 100.0) / NULLIF(COUNT(DISTINCT s.id), 0), 2) as female_percentage")
+        ]);
+
+        $rawResults = $query->select($selects)
+            ->groupBy('v.polling', 'c.id', 'c.name')
+            ->orderBy('c.id', 'asc')
+            ->orderBy('v.polling', 'asc')
+            ->paginate($request->input('per_page', 20));
+
+        $results = $rawResults->getCollection()->map(function ($row) use ($parties) {
+            $transformedRow = [
+                'polling_division' => $row->polling_division,
+                'constituency_id' => $row->constituency_id,
+                'constituency_name' => $row->constituency_name,
+                'total_voters' => $row->total_voters,
+                'surveyed_voters' => $row->surveyed_voters,
+                'not_surveyed_voters' => $row->not_surveyed_voters,
+                'surveyed_percentage' => $row->surveyed_percentage,
+                'parties' => [],
+                'gender' => [
+                    'male' => ['count' => $row->total_male_surveyed, 'percentage' => $row->male_percentage],
+                    'female' => ['count' => $row->total_female_surveyed, 'percentage' => $row->female_percentage],
+                    'unspecified' => [
+                        'count' => $row->total_no_gender_surveyed,
+                        'percentage' => 100 - ($row->male_percentage + $row->female_percentage)
+                    ]
+                ]
+            ];
+            foreach ($parties as $party) {
+                $shortName = str_replace('-', '_', strtolower($party->short_name));
+                $countKey = "{$shortName}_count";
+                $percentageKey = "{$shortName}_percentage";
+                $transformedRow['parties'][$party->short_name] = [
+                    'count' => $row->$countKey,
+                    'percentage' => $row->$percentageKey
+                ];
+            }
+            return $transformedRow;
+        });
+
+        $paginatedResults = new \Illuminate\Pagination\LengthAwarePaginator(
+            $results,
+            $rawResults->total(),
+            $rawResults->perPage(),
+            $rawResults->currentPage(),
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Polling report 5 retrieved successfully',
+            'data' => $paginatedResults,
+        ]);
+    }
 
     /**
      * Get voter cards report grouped by polling division
