@@ -79,7 +79,7 @@ class Reports4Export implements FromCollection, WithHeadings, WithStyles
                         break;
                     case 'subtotal':
                     case 'subtotal count':
-                        $dataRow[] = $row->total_count ?? 0;
+                        $dataRow[] = $row->total_party_count ?? 0;
                         break;
                     case 'total party':
                     case 'total party count':
@@ -112,13 +112,16 @@ class Reports4Export implements FromCollection, WithHeadings, WithStyles
             $collection[] = $dataRow;
         }
 
-        // Add totals row at the end
+        // Add totals row at the end - only count columns get totals, percentages are blank
         $totalsRow = [];
         foreach ($this->columns as $column) {
             switch (strtolower(trim($column))) {
                 case 'polling division':
                 case 'polling':
                     $totalsRow[] = 'TOTALS';
+                    break;
+                case 'total voters in polling':
+                    $totalsRow[] = $this->results->sum('total_voters');
                     break;
                 case 'fnm':
                 case 'fnm count':
@@ -136,17 +139,18 @@ class Reports4Export implements FromCollection, WithHeadings, WithStyles
                 case 'other count':
                     $totalsRow[] = $this->results->sum('other_count');
                     break;
+                case 'vote not surveyed':
+                case 'vote not surveyed count':
                 case 'no vote':
                 case 'no vote count':
                     $totalsRow[] = $this->results->sum('no_vote_count');
                     break;
-                case 'total voters in polling':
-                    $totalsRow[] = $this->results->sum('total_voters');
-                    break;
                 case 'subtotal':
                 case 'subtotal count':
-                case 'total':
+                    $totalsRow[] = $this->results->sum('total_party_count');
+                    break;
                 case 'total count':
+                case 'total':
                 case 'total voters':
                     $totalsRow[] = $this->results->sum('total_count');
                     break;
@@ -154,35 +158,20 @@ class Reports4Export implements FromCollection, WithHeadings, WithStyles
                 case 'total party count':
                     $totalsRow[] = $this->results->sum('total_party_count');
                     break;
+                // Percentage columns - leave blank in totals row
                 case 'fnm %':
                 case 'fnm percentage':
-                    $total = $this->results->sum('total_count');
-                    $fnm = $this->results->sum('fnm_count');
-                    $totalsRow[] = $total > 0 ? round(($fnm * 100.0) / $total, 2) . '%' : '0%';
-                    break;
                 case 'plp %':
                 case 'plp percentage':
-                    $total = $this->results->sum('total_count');
-                    $plp = $this->results->sum('plp_count');
-                    $totalsRow[] = $total > 0 ? round(($plp * 100.0) / $total, 2) . '%' : '0%';
-                    break;
                 case 'coi %':
                 case 'coi percentage':
-                    $total = $this->results->sum('total_count');
-                    $coi = $this->results->sum('coi_count');
-                    $totalsRow[] = $total > 0 ? round(($coi * 100.0) / $total, 2) . '%' : '0%';
-                    break;
+                case 'dna %':
+                case 'dna percentage':
                 case 'other %':
                 case 'other percentage':
-                    $total = $this->results->sum('total_count');
-                    $other = $this->results->sum('other_count');
-                    $totalsRow[] = $total > 0 ? round(($other * 100.0) / $total, 2) . '%' : '0%';
-                    break;
                 case 'no vote %':
                 case 'no vote percentage':
-                    $total = $this->results->sum('total_count');
-                    $noVote = $this->results->sum('no_vote_count');
-                    $totalsRow[] = $total > 0 ? round(($noVote * 100.0) / $total, 2) . '%' : '0%';
+                    $totalsRow[] = '';
                     break;
                 default:
                     $totalsRow[] = '';

@@ -19,8 +19,7 @@ use Illuminate\Support\Facades\DB;
 use App\Exports\Reports1Export;
 use App\Exports\Reports2Export;
 use App\Exports\Reports3Export;      
-use App\Exports\Reports4Export; 
-use DB;     
+use App\Exports\Reports4Export;     
 class ManagerUsersController extends Controller
 {
      
@@ -1904,9 +1903,68 @@ class ManagerUsersController extends Controller
                 $query->where('v.const', $constituencyId);
             }
     
+            // Subquery: total voters per polling (all voters in that polling with same voter/constituency filters)
+            $constituencyIds = explode(',', auth()->user()->constituency_id);
+            $totalVotersSubquery = DB::table('voters as v2')
+                ->leftJoin('constituencies as c2', 'v2.const', '=', 'c2.id')
+                ->select('v2.polling', DB::raw('COUNT(DISTINCT v2.id) as total_voters'))
+                ->whereIn('v2.const', $constituencyIds)
+                ->groupBy('v2.polling');
+            // Apply same voter-level and constituency-level filters (no survey filters)
+            if ($existsInDatabase === 'true') {
+                $totalVotersSubquery->where('v2.exists_in_database', true);
+            } elseif ($existsInDatabase === 'false') {
+                $totalVotersSubquery->where('v2.exists_in_database', false);
+            }
+            if (!empty($constituencyId) && is_numeric($constituencyId)) {
+                $totalVotersSubquery->where('v2.const', $constituencyId);
+            }
+            if (!empty($constituencyName)) {
+                $totalVotersSubquery->whereRaw('LOWER(c2.name) LIKE ?', ['%' . strtolower($constituencyName) . '%']);
+            }
+            if (!empty($polling) && is_numeric($polling)) {
+                $totalVotersSubquery->where('v2.polling', $polling);
+            }
+            if ($underAge25 === 'yes') {
+                $totalVotersSubquery->whereRaw('EXTRACT(YEAR FROM AGE(CURRENT_DATE, v2.dob)) < 25');
+            }
+            if (!empty($surname)) {
+                $totalVotersSubquery->whereRaw('LOWER(v2.surname) LIKE ?', ['%' . strtolower($surname) . '%']);
+            }
+            if (!empty($firstName)) {
+                $totalVotersSubquery->whereRaw('LOWER(v2.first_name) LIKE ?', ['%' . strtolower($firstName) . '%']);
+            }
+            if (!empty($secondName)) {
+                $totalVotersSubquery->whereRaw('LOWER(v2.second_name) LIKE ?', ['%' . strtolower($secondName) . '%']);
+            }
+            if (!empty($voterId) && is_numeric($voterId)) {
+                $totalVotersSubquery->where('v2.voter', $voterId);
+            }
+            $totalVotersSubquery->where(function ($q) use ($houseNumber, $address, $pobse, $pobis, $pobcn) {
+                if ($houseNumber !== null && $houseNumber !== '') {
+                    $q->whereRaw('LOWER(v2.house_number) = ?', [strtolower($houseNumber)]);
+                }
+                if ($address !== null && $address !== '') {
+                    $q->whereRaw('LOWER(v2.address) = ?', [strtolower($address)]);
+                }
+                if ($pobse !== null && $pobse !== '') {
+                    $q->whereRaw('LOWER(v2.pobse) = ?', [strtolower($pobse)]);
+                }
+                if ($pobis !== null && $pobis !== '') {
+                    $q->whereRaw('LOWER(v2.pobis) = ?', [strtolower($pobis)]);
+                }
+                if ($pobcn !== null && $pobcn !== '') {
+                    $q->whereRaw('LOWER(v2.pobcn) = ?', [strtolower($pobcn)]);
+                }
+            });
+
+            $query->leftJoinSub($totalVotersSubquery, 'tv', 'v.polling', '=', 'tv.polling');
+    
             // Select aggregated data by polling division (NO pagination for Excel - get ALL rows)
             $results = $query->select(
                 'v.polling as polling_division',
+                // Total voters in this polling (all voters matching filters)
+                DB::raw('COALESCE(MAX(tv.total_voters), COUNT(DISTINCT v.id)) as total_voters'),
                 DB::raw("COUNT(DISTINCT CASE WHEN ls.voting_for = '$fnmName' THEN v.id END) as fnm_count"),
                 DB::raw("COUNT(DISTINCT CASE WHEN ls.voting_for = '$plpName' THEN v.id END) as plp_count"),
                 DB::raw("COUNT(DISTINCT CASE WHEN ls.voting_for = '$coiName' THEN v.id END) as coi_count"),
@@ -1923,9 +1981,11 @@ class ManagerUsersController extends Controller
             ->orderBy('v.polling', 'asc')
             ->get();  // Get ALL rows for Excel (no pagination)
     
-            // Transform: add total_party_count to each item
+            // Transform: add total_party_count and ensure total_voters/total_count are integers
             $results->transform(function ($item) {
-                $item->total_party_count = $item->fnm_count + $item->plp_count + $item->coi_count + $item->other_count;
+                $item->total_voters = (int) ($item->total_voters ?? $item->total_count ?? 0);
+                $item->total_count = (int) $item->total_count;
+                $item->total_party_count = (int) $item->fnm_count + (int) $item->plp_count + (int) $item->coi_count + (int) $item->other_count;
                 return $item;
             });
     
