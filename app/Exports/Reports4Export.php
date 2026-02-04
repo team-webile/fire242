@@ -140,6 +140,11 @@ class Reports4Export implements FromCollection, WithHeadings, WithStyles
                 case 'no vote count':
                     $totalsRow[] = $this->results->sum('no_vote_count');
                     break;
+                case 'total voters in polling':
+                    $totalsRow[] = $this->results->sum('total_voters');
+                    break;
+                case 'subtotal':
+                case 'subtotal count':
                 case 'total':
                 case 'total count':
                 case 'total voters':
