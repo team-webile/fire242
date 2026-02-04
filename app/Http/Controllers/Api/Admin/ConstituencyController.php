@@ -1091,7 +1091,7 @@ class ConstituencyController extends Controller
 
         $rawResults = $query->select($selects)
             ->groupBy('v.polling', 'c.id', 'c.name')
-            ->orderBy('c.id', 'asc')
+            ->orderBy('c.name', 'asc')
             ->orderBy('v.polling', 'asc')
             ->paginate($request->input('per_page', 20));
 

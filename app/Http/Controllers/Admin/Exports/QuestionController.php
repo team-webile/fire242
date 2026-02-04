@@ -663,7 +663,7 @@ class QuestionController extends Controller
 
             $rawResults = $query->select($selects)
                 ->groupBy('v.polling', 'c.id', 'c.name')
-                ->orderBy('c.id', 'asc')
+                ->orderBy('c.name', 'asc')
                 ->orderBy('v.polling', 'asc')
                 ->get();
 
