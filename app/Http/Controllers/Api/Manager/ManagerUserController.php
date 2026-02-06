@@ -511,7 +511,9 @@ class ManagerUserController extends Controller
             FROM surveys
             ORDER BY voter_id, created_at DESC
         ) AS latest_surveys"), 'surveys.id', '=', 'latest_surveys.id')
-        ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for')
+        ->select('voters.*', 'constituencies.name as constituency_name', 
+        'surveys.id as survey_id', 'surveys.created_at as survey_date', 
+        'surveys.user_id', 'surveys.voting_for', 'surveys.cell_phone','surveys.cell_phone_code')
         ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
         ->where('surveys.voting_for', 'Other')
         ->whereIn('voters.const', explode(',', $surveyor->constituency_id))
@@ -664,7 +666,9 @@ class ManagerUserController extends Controller
             FROM surveys
             ORDER BY voter_id, created_at DESC
         ) AS latest_surveys"), 'surveys.id', '=', 'latest_surveys.id')
-        ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for')
+        ->select('voters.*', 'constituencies.name as constituency_name',
+         'surveys.id as survey_id', 'surveys.created_at as survey_date', 'surveys.user_id',
+          'surveys.voting_for', 'surveys.cell_phone','surveys.cell_phone_code')
         ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
         ->where(function($query) {
             $query->where('surveys.voting_for', 'FNM')
@@ -829,7 +833,9 @@ class ManagerUserController extends Controller
             FROM surveys
             ORDER BY voter_id, created_at DESC
         ) AS latest_surveys"), 'surveys.id', '=', 'latest_surveys.id')
-        ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for')
+        ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id',
+         'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for', 
+         'surveys.cell_phone','surveys.cell_phone_code')
         ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
         ->where(function($query) {
             $query->where('surveys.voting_for', 'FNM')
@@ -979,7 +985,9 @@ class ManagerUserController extends Controller
                 FROM surveys
                 ORDER BY voter_id, created_at DESC
             ) AS latest_surveys"), 'surveys.id', '=', 'latest_surveys.id')
-            ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for')
+            ->select('voters.*', 'constituencies.name as constituency_name', 
+            'surveys.id as survey_id', 'surveys.created_at as survey_date',
+             'surveys.user_id', 'surveys.voting_for', 'surveys.cell_phone','surveys.cell_phone_code')
             ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
             ->where(function($query) {
                 $query->where('surveys.voting_for', 'PLP')
@@ -1096,7 +1104,9 @@ class ManagerUserController extends Controller
             FROM surveys
             ORDER BY voter_id, created_at DESC
         ) AS latest_surveys"), 'surveys.id', '=', 'latest_surveys.id')
-        ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for')
+        ->select('voters.*', 'constituencies.name as constituency_name', 
+        'surveys.id as survey_id', 'surveys.created_at as survey_date',
+         'surveys.user_id', 'surveys.voting_for', 'surveys.cell_phone','surveys.cell_phone_code')
         ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
         ->where(function($query) {
             $query->whereNotIn('voting_for', ['FNM', 'Free National Movement', 'PLP', 'Progressive Liberal Party', 'COI', 'Coalition of Independents', 'Other'])
@@ -1359,7 +1369,9 @@ class ManagerUserController extends Controller
             FROM surveys
             ORDER BY voter_id, created_at DESC
         ) AS latest_surveys"), 'surveys.id', '=', 'latest_surveys.id')
-        ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for')
+        ->select('voters.*', 'constituencies.name as constituency_name',
+         'surveys.id as survey_id', 'surveys.created_at as survey_date',
+          'surveys.user_id', 'surveys.voting_for', 'surveys.cell_phone','surveys.cell_phone_code')
         ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
         ->where(function($query) {
             $query->whereNull('surveys.voting_for')->where('surveys.voting_decision','undecided');
@@ -1489,7 +1501,9 @@ class ManagerUserController extends Controller
                 FROM surveys
                 ORDER BY voter_id, created_at DESC
             ) AS latest_surveys"), 'surveys.id', '=', 'latest_surveys.id')
-            ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for')
+            ->select('voters.*', 'constituencies.name as constituency_name', 
+            'surveys.id as survey_id', 'surveys.created_at as survey_date',
+             'surveys.user_id', 'surveys.voting_for', 'surveys.cell_phone','surveys.cell_phone_code')
             ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
             ->where(function($query) {
                 $query->whereNull('surveys.voting_for')->where('surveys.voting_decision','no');
