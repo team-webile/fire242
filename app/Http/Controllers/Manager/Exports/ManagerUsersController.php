@@ -1962,9 +1962,7 @@ class ManagerUsersController extends Controller
             }
 
             // Convert Collection to array for Blade view
-            $resultsArray = $results->map(function ($row) {
-                return (array) $row;
-            })->toArray();
+            $resultsArray = $results->toArray();
 
             $pdf = Pdf::loadView('pdf.polling-report', [
                 'results' => $resultsArray,
