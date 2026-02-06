@@ -822,8 +822,22 @@ class QuestionController extends Controller
                 return strtolower(urldecode(trim($column)));
             }, explode(',', $_GET['columns'] ?? ''));
 
+            // If no columns provided, use default columns
+            if (empty($columns) || (count($columns) === 1 && empty($columns[0]))) {
+                $columns = ['polling division', 'constituency id', 'constituency name', 'total voters', 'surveyed voters', 'not surveyed', 'surveyed %'];
+                // Add party percentage columns
+                foreach ($parties as $party) {
+                    $columns[] = $party->short_name . ' %';
+                }
+            }
+
+            // Convert Collection to array for Blade view
+            $resultsArray = $results->map(function ($row) {
+                return (array) $row;
+            })->toArray();
+
             $pdf = Pdf::loadView('pdf.polling-report', [
-                'results' => $results,
+                'results' => $resultsArray,
                 'columns' => $columns,
                 'constituency_id' => $request->constituency_id ?? null,
                 'constituency_name' => $request->constituency_name ?? null,
