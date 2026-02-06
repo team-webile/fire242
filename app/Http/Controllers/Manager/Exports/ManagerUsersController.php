@@ -1959,6 +1959,10 @@ class ManagerUsersController extends Controller
                 foreach ($parties as $party) {
                     $columns[] = $party->short_name . ' %';
                 }
+                // Add gender percentage columns
+                $columns[] = 'male %';
+                $columns[] = 'female %';
+                $columns[] = 'unspecified %';
             }
 
             // Convert Collection to array for Blade view

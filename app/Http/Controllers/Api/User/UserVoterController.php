@@ -34,12 +34,9 @@ class UserVoterController extends Controller
             'message' => 'Unauthorized'
         ], 403);
     }
-     $query = Voter::with(['constituency','user','living_constituency','surveyer_constituency',
-     'surveys.id as survey_id'])
+     $query = Voter::with(['constituency','user','living_constituency','surveyer_constituency'])
          ->where('voters.is_national', 1)
-         ->where('voters.user_id', $user->id)
-         ->leftjoin('surveys', 'voters.id', '=', 'surveys.voter_id')
-        
+         ->where('voters.user_id', $user->id); 
          
 
      $searchableFields = [

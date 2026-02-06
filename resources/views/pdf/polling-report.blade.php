@@ -184,6 +184,39 @@
                                         $pct = $row['surveyed_percentage'] ?? 0;
                                         $value = is_numeric($pct) ? number_format($pct, 2) . '%' : $pct;
                                         break;
+                                    case 'male %':
+                                        // For totals row, leave gender percentages blank
+                                        if (isset($row['polling_division']) && $row['polling_division'] === 'TOTALS') {
+                                            $value = '';
+                                        } elseif (isset($row['gender']['male']['percentage'])) {
+                                            $pctVal = $row['gender']['male']['percentage'];
+                                            $value = is_numeric($pctVal) ? number_format($pctVal, 2) . '%' : '0.00%';
+                                        } else {
+                                            $value = '0.00%';
+                                        }
+                                        break;
+                                    case 'female %':
+                                        // For totals row, leave gender percentages blank
+                                        if (isset($row['polling_division']) && $row['polling_division'] === 'TOTALS') {
+                                            $value = '';
+                                        } elseif (isset($row['gender']['female']['percentage'])) {
+                                            $pctVal = $row['gender']['female']['percentage'];
+                                            $value = is_numeric($pctVal) ? number_format($pctVal, 2) . '%' : '0.00%';
+                                        } else {
+                                            $value = '0.00%';
+                                        }
+                                        break;
+                                    case 'unspecified %':
+                                        // For totals row, leave gender percentages blank
+                                        if (isset($row['polling_division']) && $row['polling_division'] === 'TOTALS') {
+                                            $value = '';
+                                        } elseif (isset($row['gender']['unspecified']['percentage'])) {
+                                            $pctVal = $row['gender']['unspecified']['percentage'];
+                                            $value = is_numeric($pctVal) ? number_format($pctVal, 2) . '%' : '0.00%';
+                                        } else {
+                                            $value = '0.00%';
+                                        }
+                                        break;
                                     default:
                                         if (str_ends_with($col, ' %')) {
                                             // For totals row, leave party percentages blank
