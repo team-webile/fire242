@@ -48,8 +48,8 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
             if (in_array('last name', $this->columns)) {
                 $row['Last Name'] = $voter->surname;
             }
-            if (in_array('cell phone', $this->columns)) {
-                $row['Cell Phone'] = ($voter->cell_phone_code && $voter->cell_phone) ? $voter->cell_phone_code . ' ' . $voter->cell_phone : 'N/A' ?? 'N/A';
+            if (in_array('cell phone number', $this->columns)) {
+                $row['Cell Phone number'] = ($voter->cell_phone_code && $voter->cell_phone) ? $voter->cell_phone_code . ' ' . $voter->cell_phone : 'N/A' ?? 'N/A';
             }
             if (in_array('surveyed by', $this->columns)) {
                 $row['Surveyed By'] = isset($voter->user) ? $voter->user->name : null;
@@ -111,6 +111,7 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
                 case 'first name': $headers[] = 'First Name'; break;
                 case 'second name': $headers[] = 'Second Name'; break;
                 case 'last name': $headers[] = 'Last Name'; break;
+                case 'cell phone number': $headers[] = 'Cell Phone number'; break;
                 case 'surveyed by': $headers[] = 'Surveyed By'; break;
                 case 'surveyed by email': $headers[] = 'Surveyed By Email'; break;
                 case 'date of birth': $headers[] = 'Date of Birth'; break;
@@ -127,7 +128,7 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
                 case 'special comments': $headers[] = 'Special Comments'; break;
                 case 'other comments': $headers[] = 'Other Comments'; break;
                 case 'surveyed date': $headers[] = 'Surveyed Date'; break;
-                case 'cell phone': $headers[] = 'Cell Phone'; break;
+               
               
             }
         }
@@ -171,7 +172,7 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
                 case 'surveyed date':
                     $columnWidths[$letter] = 20;
                     break;
-                case 'cell phone':
+                case 'cell phone number':
                     $columnWidths[$letter] = 20;
                     break;
                 default:
