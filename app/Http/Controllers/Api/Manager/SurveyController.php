@@ -654,7 +654,7 @@ class SurveyController extends Controller
                 'email' => 'nullable|email',
                 'special_comments' => 'nullable|string',
                 'other_comments' => 'nullable|string',
-                'voting_for' => 'sometimes|string',
+                'voting_for' => 'nullable|string',
                 'last_voted' => 'nullable|string',
                 'voted_for_party' => 'nullable|string',
                 'voted_where' => 'nullable|string',
