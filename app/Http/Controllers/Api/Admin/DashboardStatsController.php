@@ -1667,7 +1667,7 @@ class DashboardStatsController extends Controller
             FROM surveys
             ORDER BY voter_id, created_at DESC
         ) AS latest_surveys"), 'surveys.id', '=', 'latest_surveys.id')
-        ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for',, 'surveys.voting_for','surveys.cell_phone','surveys.cell_phone_code')
+        ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for', 'surveys.voting_for','surveys.cell_phone','surveys.cell_phone_code')
         ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
         ->where(function($query) {
             $query->where('surveys.voting_for', 'COI')
