@@ -270,7 +270,7 @@ class Admin_SurveyController extends Controller
                 'cell_phone_code' => 'nullable|string',
                 'cell_phone' => 'nullable|string',
                 'email' => 'nullable|email',
-                'special_comments' => 'nullable|string',
+                'special_comments' => 'nullable|string', 
                 'other_comments' => 'nullable|string',
                 'voting_for' => 'nullable|string',
                 'last_voted' => 'nullable|string',
