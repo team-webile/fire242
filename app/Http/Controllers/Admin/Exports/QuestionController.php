@@ -711,13 +711,17 @@ class QuestionController extends Controller
          */
         public function getConstituencyReport5Pdf(Request $request)
         {
-            $existsInDatabase = $request->input('exists_in_database');
-            $parties = DB::table('parties')
-                ->where('status', 'active')
-                ->orderBy('position')
-                ->get();
+            ini_set('memory_limit', '512M');
+            set_time_limit(300); // 5 minutes
+            
+            try {
+                $existsInDatabase = $request->input('exists_in_database');
+                $parties = DB::table('parties')
+                    ->where('status', 'active')
+                    ->orderBy('position')
+                    ->get();
 
-            $query = DB::table('voters as v')
+                $query = DB::table('voters as v')
                 ->leftJoin('constituencies as c', 'v.const', '=', 'c.id')
                 ->leftJoin(DB::raw("(
                     SELECT DISTINCT ON (voter_id) *
@@ -794,59 +798,66 @@ class QuestionController extends Controller
                         'percentage' => $row->$percentageKey
                     ];
                 }
-                return $transformedRow;
-            });
+                    return $transformedRow;
+                });
 
-            // Add totals row
-            $totalVotersSum = 0;
-            $surveyedSum = 0;
-            $notSurveyedSum = 0;
-            foreach ($results as $row) {
-                $totalVotersSum += (int) ($row['total_voters'] ?? 0);
-                $surveyedSum += (int) ($row['surveyed_voters'] ?? 0);
-                $notSurveyedSum += (int) ($row['not_surveyed_voters'] ?? 0);
-            }
-            $totalsRow = [
-                'polling_division' => 'TOTALS',
-                'constituency_id' => '',
-                'constituency_name' => '',
-                'total_voters' => $totalVotersSum,
-                'surveyed_voters' => $surveyedSum,
-                'not_surveyed_voters' => $notSurveyedSum,
-                'surveyed_percentage' => $totalVotersSum > 0 ? round(($surveyedSum * 100.0) / $totalVotersSum, 2) : 0,
-                'parties' => [],
-            ];
-            $results->push($totalsRow);
-
-            $columns = array_map(function ($column) {
-                return strtolower(urldecode(trim($column)));
-            }, explode(',', $_GET['columns'] ?? ''));
-
-            // If no columns provided, use default columns
-            if (empty($columns) || (count($columns) === 1 && empty($columns[0]))) {
-                $columns = ['polling division', 'constituency id', 'constituency name', 'total voters', 'surveyed voters', 'not surveyed', 'surveyed %'];
-                // Add party percentage columns
-                foreach ($parties as $party) {
-                    $columns[] = $party->short_name . ' %';
+                // Add totals row
+                $totalVotersSum = 0;
+                $surveyedSum = 0;
+                $notSurveyedSum = 0;
+                foreach ($results as $row) {
+                    $totalVotersSum += (int) ($row['total_voters'] ?? 0);
+                    $surveyedSum += (int) ($row['surveyed_voters'] ?? 0);
+                    $notSurveyedSum += (int) ($row['not_surveyed_voters'] ?? 0);
                 }
-                // Add gender percentage columns
-                $columns[] = 'male %';
-                $columns[] = 'female %';
-                $columns[] = 'unspecified %';
+                $totalsRow = [
+                    'polling_division' => 'TOTALS',
+                    'constituency_id' => '',
+                    'constituency_name' => '',
+                    'total_voters' => $totalVotersSum,
+                    'surveyed_voters' => $surveyedSum,
+                    'not_surveyed_voters' => $notSurveyedSum,
+                    'surveyed_percentage' => $totalVotersSum > 0 ? round(($surveyedSum * 100.0) / $totalVotersSum, 2) : 0,
+                    'parties' => [],
+                ];
+                $results->push($totalsRow);
+
+                $columns = array_map(function ($column) {
+                    return strtolower(urldecode(trim($column)));
+                }, explode(',', $_GET['columns'] ?? ''));
+
+                // If no columns provided, use default columns
+                if (empty($columns) || (count($columns) === 1 && empty($columns[0]))) {
+                    $columns = ['polling division', 'constituency id', 'constituency name', 'total voters', 'surveyed voters', 'not surveyed', 'surveyed %'];
+                    // Add party percentage columns
+                    foreach ($parties as $party) {
+                        $columns[] = $party->short_name . ' %';
+                    }
+                    // Add gender percentage columns
+                    $columns[] = 'male %';
+                    $columns[] = 'female %';
+                    $columns[] = 'unspecified %';
+                }
+
+                // Convert Collection to array for Blade view
+                $resultsArray = $results->toArray();
+
+                $pdf = Pdf::loadView('pdf.polling-report', [
+                    'results' => $resultsArray,
+                    'columns' => $columns,
+                    'constituency_id' => $request->constituency_id ?? null,
+                    'constituency_name' => $request->constituency_name ?? null,
+                    'polling' => $request->polling ?? null
+                ]);
+                $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
+                return $pdf->download('Polling Reports_' . $timestamp . '.pdf');
+            } catch (\Exception $e) {
+                \Log::error('Report 5 PDF Export Error: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error generating PDF: ' . $e->getMessage()
+                ], 500);
             }
-
-            // Convert Collection to array for Blade view
-            $resultsArray = $results->toArray();
-
-            $pdf = Pdf::loadView('pdf.polling-report', [
-                'results' => $resultsArray,
-                'columns' => $columns,
-                'constituency_id' => $request->constituency_id ?? null,
-                'constituency_name' => $request->constituency_name ?? null,
-                'polling' => $request->polling ?? null
-            ]);
-            $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
-            return $pdf->download('Polling Reports_' . $timestamp . '.pdf');
         }
 
         public function voterCardsReport(Request $request)
