@@ -15,6 +15,79 @@ use Illuminate\Support\Facades\Cache;
 class VoterController extends Controller  
 {
       
+
+     
+    public function GetSingleNationalRegistery(Request $request) 
+    {
+        $voter = Voter::with(['constituency','user','living_constituency','surveyer_constituency'])
+            ->where('voters.is_national', 1)
+            ->where('voters.id', $request->id)
+            ->first();
+        return response()->json([
+            'success' => true,
+            'data' => $voter
+        ]);
+    } 
+
+
+    public function updateNationalRegistery(Request $request) 
+    {
+         
+        $voter = Voter::where('id', $request->id)->first();
+
+        if (!$voter) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Voter not found'
+            ], 404);
+        }
+
+        $validator = \Validator::make($request->all(), [
+            'first_name' => 'required|string|max:255',
+            'second_name' => 'nullable|string|max:255',
+            'surname' => 'nullable|string|max:255',
+            'gender' => 'nullable|in:male,female,other',
+            'address' => 'nullable|string',
+            'phone_number' => 'nullable|string|max:20',
+            'voter_voting_for' => 'nullable|string',
+            'living_constituency' => 'nullable|integer|exists:constituencies,id',
+            'surveyer_constituency' => 'nullable|integer|exists:constituencies,id',
+            'note' => 'nullable|string',
+            'email' => 'nullable|email|max:255'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $data = $validator->validated();
+
+        if (isset($data['first_name'])) $voter->first_name = $data['first_name'];
+        if (isset($data['second_name'])) $voter->second_name = $data['second_name'];
+        if (isset($data['surname'])) $voter->surname = $data['surname'];
+        if (isset($data['gender'])) $voter->gender = $data['gender'];
+        if (isset($data['address'])) $voter->address = $data['address'];
+        if (isset($data['phone_number'])) $voter->phone_number = $data['phone_number'];
+        if (isset($data['voter_voting_for'])) $voter->voter_voting_for = $data['voter_voting_for'];
+        if (isset($data['living_constituency'])) $voter->living_constituency = $data['living_constituency'];
+        if (isset($data['surveyer_constituency'])) $voter->surveyer_constituency = $data['surveyer_constituency'];
+        if (isset($data['note'])) $voter->note = $data['note'];
+        if (isset($data['email'])) $voter->email = $data['email'];
+
+        $voter->is_national = 1; // always keep is_national
+        
+
+        $voter->save();
+
+        return response()->json([
+            'success' => true,
+            'data' => $voter
+        ]);
+    }
    
     public function nationalRegisteryList(Request $request) 
     {   

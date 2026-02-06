@@ -116,6 +116,8 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('print_voters', [VoterController::class, 'print_voters']); 
         Route::get('voters', [VoterController::class, 'index']);
         Route::get('national-registery-list', [VoterController::class, 'nationalRegisteryList']);
+        Route::get('national-registery-list/{id}', [VoterController::class, 'GetSingleNationalRegistery']);
+        Route::post('update-national-registery/{id}', [VoterController::class, 'updateNationalRegistery']); 
 
         Route::get('election-day-report-one', [VoterController::class, 'electionDayReport_one']); 
         Route::get('election-day-graph', [VoterController::class, 'electionDayGraph']);
@@ -422,6 +424,8 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('birthday-voters', [App\Http\Controllers\Api\Manager\UserVoterBirthdayController::class, 'userBirthdayVoters']);
         Route::get('birthday-voters-contacted/{id}', [App\Http\Controllers\Api\Manager\UserVoterBirthdayController::class, 'userBirthdayVotersContacted']);
         Route::get('national-registery-list', [App\Http\Controllers\Api\Manager\UserVoterController::class, 'nationalRegisteryList']);
+        Route::get('national-registery-list/{id}', [App\Http\Controllers\Api\Manager\UserVoterController::class, 'GetSingleNationalRegistery']);
+        Route::post('update-national-registery/{id}', [App\Http\Controllers\Api\Manager\UserVoterController::class, 'updateNationalRegistery']);
         Route::get('voters-in-survey', [App\Http\Controllers\Api\Manager\UserVoterController::class, 'getVotersInSurvey']); 
         Route::get('died-voters-in-survey', [App\Http\Controllers\Api\Manager\UserVoterController::class, 'getDiedVotersInSurvey']);
         Route::get('voters-not-in-survey', [App\Http\Controllers\Api\Manager\UserVoterController::class, 'getVotersNotInSurvey']);
