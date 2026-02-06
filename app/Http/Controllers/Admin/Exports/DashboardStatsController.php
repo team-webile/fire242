@@ -917,7 +917,7 @@ class DashboardStatsController extends Controller
             }, explode(',', $_GET['columns']));
            
             $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
-            dd($results, $columns);
+           
             return Excel::download(new VotersExport($results, $request, $columns), 'FNM voters_' . $timestamp . '.xlsx');   
 
         }

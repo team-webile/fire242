@@ -48,6 +48,9 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
             if (in_array('last name', $this->columns)) {
                 $row['Last Name'] = $voter->surname;
             }
+            if (in_array('cell phone', $this->columns)) {
+                $row['Cell Phone'] = ($voter->cell_phone_code && $voter->cell_phone) ? $voter->cell_phone_code . ' ' . $voter->cell_phone : 'N/A' ?? 'N/A';
+            }
             if (in_array('surveyed by', $this->columns)) {
                 $row['Surveyed By'] = isset($voter->user) ? $voter->user->name : null;
             }
@@ -56,10 +59,6 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
             }
             if (in_array('date of birth', $this->columns)) {
                 $row['Date of Birth'] = $voter->dob;
-            }
-            
-            if (in_array('cell phone number', $this->columns)) {
-                $row['Cell Phone Number'] = ($voter->cell_phone_code && $voter->cell_phone) ? $voter->cell_phone_code . ' ' . $voter->cell_phone : 'N/A' ?? 'N/A';
             }
             if (in_array('house number', $this->columns)) {
                 $row['House Number'] = $voter->house_number;
@@ -93,6 +92,8 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
             if (in_array('surveyed date', $this->columns)) {
                 $row['Surveyed Date'] = $voter->survey_date;
             }
+            // New column: celll phone (intentional spelling to match request)
+            
             
             return $row;
         });
@@ -113,7 +114,6 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
                 case 'surveyed by': $headers[] = 'Surveyed By'; break;
                 case 'surveyed by email': $headers[] = 'Surveyed By Email'; break;
                 case 'date of birth': $headers[] = 'Date of Birth'; break;
-                case 'cell phone number': $headers[] = 'Cell Phone Number'; break;
                 case 'house number': $headers[] = 'House Number'; break;
                 case 'address': $headers[] = 'Address'; break;
                 case 'aptno': $headers[] = 'Apt No'; break;
@@ -127,6 +127,8 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
                 case 'special comments': $headers[] = 'Special Comments'; break;
                 case 'other comments': $headers[] = 'Other Comments'; break;
                 case 'surveyed date': $headers[] = 'Surveyed Date'; break;
+                case 'cell phone': $headers[] = 'Cell Phone'; break;
+              
             }
         }
         return $headers;
@@ -152,7 +154,6 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
                 case 'address':
                     $columnWidths[$letter] = 40;
                     break;
-                case 'cell phone number':
                 case 'house number':
                 case 'aptno':
                 case 'blkno': 
@@ -168,6 +169,9 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
                     $columnWidths[$letter] = 25;
                     break;
                 case 'surveyed date':
+                    $columnWidths[$letter] = 20;
+                    break;
+                case 'cell phone':
                     $columnWidths[$letter] = 20;
                     break;
                 default:
