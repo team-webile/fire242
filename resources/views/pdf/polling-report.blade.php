@@ -65,21 +65,25 @@
             width: 100%; 
             border-collapse: collapse; 
             margin-top: 10px;
+            table-layout: fixed;
         }
         th { 
             background-color: #343a40; 
             color: white; 
-            padding: 8px; 
+            padding: 8px 4px; 
             text-align: center;
             font-size: 9px;
             font-weight: bold;
             border: 1px solid #dee2e6;
+            word-wrap: break-word;
         }
         td { 
-            padding: 6px; 
+            padding: 6px 4px; 
             text-align: center; 
             border: 1px solid #dee2e6;
             font-size: 9px;
+            word-wrap: break-word;
+            vertical-align: middle;
         }
         tr:nth-child(even) {
             background-color: #f8f9fa;
@@ -87,6 +91,12 @@
         .totals-row {
             background-color: #e9ecef !important;
             font-weight: bold;
+        }
+        .totals-row td {
+            background-color: #e9ecef !important;
+        }
+        tbody tr {
+            page-break-inside: avoid;
         }
         .footer {
             margin-top: 20px;
@@ -172,7 +182,7 @@
                                         break;
                                     case 'surveyed %':
                                         $pct = $row['surveyed_percentage'] ?? 0;
-                                        $value = is_numeric($pct) ? $pct . '%' : $pct;
+                                        $value = is_numeric($pct) ? number_format($pct, 2) . '%' : $pct;
                                         break;
                                     default:
                                         if (str_ends_with($col, ' %')) {
@@ -188,7 +198,12 @@
                                                         break;
                                                     }
                                                 }
-                                                $value = $found !== null ? ($found['percentage'] ?? 0) . '%' : '0.00%';
+                                                if ($found !== null) {
+                                                    $pctVal = $found['percentage'] ?? 0;
+                                                    $value = is_numeric($pctVal) ? number_format($pctVal, 2) . '%' : '0.00%';
+                                                } else {
+                                                    $value = '0.00%';
+                                                }
                                             } else {
                                                 $value = '0.00%';
                                             }
@@ -197,7 +212,7 @@
                                         }
                                 }
                                 
-                                echo $value;
+                                echo $value !== '' ? $value : '&nbsp;';
                             @endphp
                         </td>
                     @endforeach
