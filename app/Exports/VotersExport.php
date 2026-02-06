@@ -57,6 +57,10 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
             if (in_array('date of birth', $this->columns)) {
                 $row['Date of Birth'] = $voter->dob;
             }
+            
+            if (in_array('cell phone number', $this->columns)) {
+                $row['Cell Phone Number'] = ($voter->cell_phone_code && $voter->cell_phone) ? $voter->cell_phone_code . ' ' . $voter->cell_phone : 'N/A' ?? 'N/A';
+            }
             if (in_array('house number', $this->columns)) {
                 $row['House Number'] = $voter->house_number;
             }
@@ -109,6 +113,7 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
                 case 'surveyed by': $headers[] = 'Surveyed By'; break;
                 case 'surveyed by email': $headers[] = 'Surveyed By Email'; break;
                 case 'date of birth': $headers[] = 'Date of Birth'; break;
+                case 'cell phone number': $headers[] = 'Cell Phone Number'; break;
                 case 'house number': $headers[] = 'House Number'; break;
                 case 'address': $headers[] = 'Address'; break;
                 case 'aptno': $headers[] = 'Apt No'; break;
@@ -147,6 +152,7 @@ class VotersExport implements FromCollection, WithHeadings, WithStyles
                 case 'address':
                     $columnWidths[$letter] = 40;
                     break;
+                case 'cell phone number':
                 case 'house number':
                 case 'aptno':
                 case 'blkno': 
