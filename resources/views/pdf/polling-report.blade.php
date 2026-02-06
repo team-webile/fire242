@@ -162,29 +162,36 @@
                                         $value = $row['constituency_name'] ?? '';
                                         break;
                                     case 'total voters':
-                                        $value = $row['total_voters'] ?? 0;
+                                        $value = isset($row['total_voters']) ? (int)$row['total_voters'] : 0;
                                         break;
                                     case 'surveyed voters':
-                                        $value = $row['surveyed_voters'] ?? 0;
+                                        $value = isset($row['surveyed_voters']) ? (int)$row['surveyed_voters'] : 0;
                                         break;
                                     case 'not surveyed':
-                                        $value = $row['not_surveyed_voters'] ?? 0;
+                                        $value = isset($row['not_surveyed_voters']) ? (int)$row['not_surveyed_voters'] : 0;
                                         break;
                                     case 'surveyed %':
                                         $pct = $row['surveyed_percentage'] ?? 0;
                                         $value = is_numeric($pct) ? $pct . '%' : $pct;
                                         break;
                                     default:
-                                        if (str_ends_with($col, ' %') && isset($row['parties'])) {
-                                            $partyKey = trim(str_replace(' %', '', $column));
-                                            $found = null;
-                                            foreach ($row['parties'] as $shortName => $data) {
-                                                if (strtolower(str_replace('-', '_', $shortName)) === strtolower(str_replace('-', '_', $partyKey))) {
-                                                    $found = $data;
-                                                    break;
+                                        if (str_ends_with($col, ' %')) {
+                                            // For totals row, leave party percentages blank
+                                            if (isset($row['polling_division']) && $row['polling_division'] === 'TOTALS') {
+                                                $value = '';
+                                            } elseif (isset($row['parties'])) {
+                                                $partyKey = trim(str_replace(' %', '', $column));
+                                                $found = null;
+                                                foreach ($row['parties'] as $shortName => $data) {
+                                                    if (strtolower(str_replace('-', '_', $shortName)) === strtolower(str_replace('-', '_', $partyKey))) {
+                                                        $found = $data;
+                                                        break;
+                                                    }
                                                 }
+                                                $value = $found !== null ? ($found['percentage'] ?? 0) . '%' : '0.00%';
+                                            } else {
+                                                $value = '0.00%';
                                             }
-                                            $value = $found !== null ? ($found['percentage'] ?? 0) . '%' : '0.00%';
                                         } else {
                                             $value = '';
                                         }
