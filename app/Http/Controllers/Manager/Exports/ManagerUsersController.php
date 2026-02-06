@@ -20,7 +20,8 @@ use App\Exports\Reports1Export;
 use App\Exports\Reports2Export;
 use App\Exports\Reports3Export;      
 use App\Exports\Reports4Export;
-use App\Exports\Reports5Export;     
+use App\Exports\Reports5Export;
+use Barryvdh\DomPDF\Facade\Pdf;     
 class ManagerUsersController extends Controller
 {
      
@@ -1831,6 +1832,135 @@ class ManagerUsersController extends Controller
 
             $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
             return Excel::download(new Reports5Export($results, $request, $columns, $parties), 'Polling Reports_' . $timestamp . '.xlsx');
+        }
+
+        /**
+         * Report 5 PDF Export: Same as Excel but PDF format.
+         */
+        public function getConstituencyReport5Pdf(Request $request)
+        {
+            $constituencyIds = explode(',', auth()->user()->constituency_id);
+            $existsInDatabase = $request->input('exists_in_database');
+            $parties = DB::table('parties')
+                ->where('status', 'active')
+                ->orderBy('position')
+                ->get();
+
+            $query = DB::table('voters as v')
+                ->leftJoin('constituencies as c', 'v.const', '=', 'c.id')
+                ->leftJoin(DB::raw("(
+                    SELECT DISTINCT ON (voter_id) *
+                    FROM surveys
+                    ORDER BY voter_id, created_at DESC
+                ) as s"), 'v.id', '=', 's.voter_id')
+                ->whereIn('v.const', $constituencyIds);
+
+            if ($existsInDatabase === 'true') {
+                $query->where('v.exists_in_database', true);
+            } elseif ($existsInDatabase === 'false') {
+                $query->where('v.exists_in_database', false);
+            }
+            if ($request->has('constituency_id')) {
+                $query->where('v.const', $request->constituency_id);
+            }
+            if ($request->has('constituency_name')) {
+                $query->whereRaw('LOWER(c.name) LIKE ?', ['%' . strtolower($request->constituency_name) . '%']);
+            }
+
+            $selects = [
+                'v.polling as polling_division',
+                'c.id as constituency_id',
+                'c.name as constituency_name',
+                DB::raw('COUNT(DISTINCT v.id) as total_voters'),
+                DB::raw('COUNT(DISTINCT s.id) as surveyed_voters'),
+                DB::raw('COUNT(DISTINCT v.id) - COUNT(DISTINCT s.id) as not_surveyed_voters'),
+                DB::raw('ROUND((COUNT(DISTINCT s.id) * 100.0) / NULLIF(COUNT(DISTINCT v.id), 0), 2) as surveyed_percentage'),
+            ];
+            foreach ($parties as $party) {
+                $partyName = $party->name;
+                $shortName = str_replace('-', '_', strtolower($party->short_name));
+                $selects[] = DB::raw("COUNT(DISTINCT CASE WHEN s.voting_for = '$partyName' THEN s.id END) as {$shortName}_count");
+                $selects[] = DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.voting_for = '$partyName' THEN s.id END) * 100.0) / NULLIF(COUNT(DISTINCT s.id), 0), 2) as {$shortName}_percentage");
+            }
+            $selects = array_merge($selects, [
+                DB::raw("COUNT(DISTINCT CASE WHEN s.sex = 'Male' THEN s.id END) as total_male_surveyed"),
+                DB::raw("COUNT(DISTINCT CASE WHEN s.sex = 'Female' THEN s.id END) as total_female_surveyed"),
+                DB::raw("COUNT(DISTINCT CASE WHEN s.sex IS NULL OR s.sex = '' THEN s.id END) as total_no_gender_surveyed"),
+                DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.sex = 'Male' THEN s.id END) * 100.0) / NULLIF(COUNT(DISTINCT s.id), 0), 2) as male_percentage"),
+                DB::raw("ROUND((COUNT(DISTINCT CASE WHEN s.sex = 'Female' THEN s.id END) * 100.0) / NULLIF(COUNT(DISTINCT s.id), 0), 2) as female_percentage"),
+            ]);
+
+            $rawResults = $query->select($selects)
+                ->groupBy('v.polling', 'c.id', 'c.name')
+                ->orderBy('c.name', 'asc')
+                ->orderBy('v.polling', 'asc')
+                ->get();
+
+            $results = $rawResults->map(function ($row) use ($parties) {
+                $transformedRow = [
+                    'polling_division' => $row->polling_division,
+                    'constituency_id' => $row->constituency_id,
+                    'constituency_name' => $row->constituency_name,
+                    'total_voters' => $row->total_voters,
+                    'surveyed_voters' => $row->surveyed_voters,
+                    'not_surveyed_voters' => $row->not_surveyed_voters,
+                    'surveyed_percentage' => $row->surveyed_percentage,
+                    'parties' => [],
+                    'gender' => [
+                        'male' => ['count' => $row->total_male_surveyed, 'percentage' => $row->male_percentage],
+                        'female' => ['count' => $row->total_female_surveyed, 'percentage' => $row->female_percentage],
+                        'unspecified' => [
+                            'count' => $row->total_no_gender_surveyed,
+                            'percentage' => 100 - ($row->male_percentage + $row->female_percentage)
+                        ]
+                    ]
+                ];
+                foreach ($parties as $party) {
+                    $shortName = str_replace('-', '_', strtolower($party->short_name));
+                    $countKey = "{$shortName}_count";
+                    $percentageKey = "{$shortName}_percentage";
+                    $transformedRow['parties'][$party->short_name] = [
+                        'count' => $row->$countKey,
+                        'percentage' => $row->$percentageKey
+                    ];
+                }
+                return $transformedRow;
+            });
+
+            // Add totals row
+            $totalVotersSum = 0;
+            $surveyedSum = 0;
+            $notSurveyedSum = 0;
+            foreach ($results as $row) {
+                $totalVotersSum += (int) ($row['total_voters'] ?? 0);
+                $surveyedSum += (int) ($row['surveyed_voters'] ?? 0);
+                $notSurveyedSum += (int) ($row['not_surveyed_voters'] ?? 0);
+            }
+            $totalsRow = [
+                'polling_division' => 'TOTALS',
+                'constituency_id' => '',
+                'constituency_name' => '',
+                'total_voters' => $totalVotersSum,
+                'surveyed_voters' => $surveyedSum,
+                'not_surveyed_voters' => $notSurveyedSum,
+                'surveyed_percentage' => $totalVotersSum > 0 ? round(($surveyedSum * 100.0) / $totalVotersSum, 2) : 0,
+                'parties' => [],
+            ];
+            $results->push($totalsRow);
+
+            $columns = array_map(function ($column) {
+                return strtolower(urldecode(trim($column)));
+            }, explode(',', $_GET['columns'] ?? ''));
+
+            $pdf = Pdf::loadView('pdf.polling-report', [
+                'results' => $results,
+                'columns' => $columns,
+                'constituency_id' => $request->constituency_id ?? null,
+                'constituency_name' => $request->constituency_name ?? null,
+                'polling' => $request->polling ?? null
+            ]);
+            $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
+            return $pdf->download('Polling Reports_' . $timestamp . '.pdf');
         }
 
         public function getConstituencyReport4(Request $request)
