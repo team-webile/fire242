@@ -1209,7 +1209,7 @@ class ManagerUsersController extends Controller
             $pobcn = $request->input('pobcn');
             $polling = $request->input('polling'); 
             $existsInDatabase = $request->input('exists_in_database');
-    
+            $phoneNumber = $request->input('phone_number') ?? $request->input('phone') ?? $request->input('cell_phone');
     
         $query = Survey::with('user')->join('voters', 'surveys.voter_id', '=', 'voters.id')
         ->join(DB::raw("(
@@ -1225,7 +1225,19 @@ class ManagerUsersController extends Controller
         ->whereIn('voters.const', explode(',', $surveyor->constituency_id))
         ->orderBy('surveys.id', 'desc');
             
-            
+            // Phone search
+            if (!empty($phoneNumber)) {
+            $cleaned = preg_replace('/[^0-9]/', '', $phoneNumber);
+            $query->where(function ($q) use ($phoneNumber, $cleaned) {
+                $q->whereRaw('surveys.cell_phone_code ILIKE ?', ['%' . $phoneNumber . '%'])
+                    ->orWhereRaw('surveys.cell_phone ILIKE ?', ['%' . $phoneNumber . '%'])
+                    ->orWhereRaw('(COALESCE(surveys.cell_phone_code, \'\') || COALESCE(surveys.cell_phone, \'\')) ILIKE ?', ['%' . $phoneNumber . '%']);
+                if (!empty($cleaned)) {
+                    $q->orWhereRaw('REGEXP_REPLACE(COALESCE(surveys.cell_phone_code, \'\') || COALESCE(surveys.cell_phone, \'\'), \'[^0-9]\', \'\', \'g\') LIKE ?', ['%' . $cleaned . '%']);
+                }
+            });
+            }
+
             if ($existsInDatabase === 'true') {
                 $query->where('voters.exists_in_database', true);
             } elseif ($existsInDatabase === 'false') {
