@@ -2607,6 +2607,7 @@ class DashboardStatsController extends Controller
             $pobcn = $request->input('pobcn');
             $polling = $request->input('polling');
             $existsInDatabase = $request->input('exists_in_database');
+            $phoneNumber = $request->input('phone_number');
             $sortBy = $request->input('sort_by'); // voter, const, or polling
             $sortOrder = $request->input('sort_order', 'asc'); // asc or desc
     
@@ -2648,6 +2649,10 @@ class DashboardStatsController extends Controller
             }
             if (!empty($voting_decision)) {
                 $query->where('surveys.voting_decision', $voting_decision);
+            }
+            if (!empty($phoneNumber) && is_numeric($phoneNumber)) {
+                $query->where('surveys.cell_phone_code', $phoneNumber)
+                ->orWhere('surveys.cell_phone', $phoneNumber);
             }
     
             if ($underAge25 === 'yes') {
