@@ -2655,7 +2655,8 @@ class DashboardStatsController extends Controller
             if (!empty($phoneNumber) && is_numeric($phoneNumber)) {
                 $query->where('surveys.cell_phone_code', 'like', '%' . $phoneNumber . '%')
                 ->orWhere('surveys.cell_phone', 'like', '%' . $phoneNumber . '%');
-            }
+          
+            } 
     
             if ($underAge25 === 'yes') {
                 $query->whereRaw('EXTRACT(YEAR FROM AGE(CURRENT_DATE, voters.dob)) < 25');
