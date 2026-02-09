@@ -2632,7 +2632,9 @@ class DashboardStatsController extends Controller
                 FROM surveys 
                 ORDER BY voter_id, created_at DESC
             ) AS latest_surveys"), 'surveys.id', '=', 'latest_surveys.id')
-            ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for','surveys.cell_phone','surveys.cell_phone_code')
+            ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 
+            'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for'
+            ,'surveys.cell_phone','surveys.cell_phone_code')
             ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
             ->whereNull('voting_for')
             ->where('voting_decision', 'undecided');
@@ -2651,8 +2653,8 @@ class DashboardStatsController extends Controller
                 $query->where('surveys.voting_decision', $voting_decision);
             }
             if (!empty($phoneNumber) && is_numeric($phoneNumber)) {
-                $query->where('surveys.cell_phone_code', $phoneNumber)
-                ->orWhere('surveys.cell_phone', $phoneNumber);
+                $query->where('surveys.cell_phone_code', 'like', '%' . $phoneNumber . '%')
+                ->orWhere('surveys.cell_phone', 'like', '%' . $phoneNumber . '%');
             }
     
             if ($underAge25 === 'yes') {
