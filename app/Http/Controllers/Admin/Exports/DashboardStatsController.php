@@ -2106,6 +2106,7 @@ class DashboardStatsController extends Controller
             $pobcn = $request->input('pobcn');
             $polling = $request->input('polling'); 
              $existsInDatabase = $request->input('exists_in_database');
+             $phoneNumber = $request->input('phone_number');
              $sortBy = $request->input('sort_by'); // voter, const, or polling
              $sortOrder = $request->input('sort_order', 'asc'); // asc or desc  
     
@@ -2135,6 +2136,14 @@ class DashboardStatsController extends Controller
             }
             if (!empty($voting_decision)) {
                 $query->where('surveys.voting_decision', $voting_decision);
+            }
+            // Phone search: one input searches phone with code, without code, or combined (e.g. "+1242555")
+            if (!empty($phoneNumber)) {
+                $query->where(function ($q) use ($phoneNumber) {
+                    $q->whereRaw('surveys.cell_phone_code ILIKE ?', ['%' . $phoneNumber . '%'])
+                      ->orWhereRaw('surveys.cell_phone ILIKE ?', ['%' . $phoneNumber . '%'])
+                      ->orWhereRaw('(COALESCE(surveys.cell_phone_code, \'\') || COALESCE(surveys.cell_phone, \'\')) ILIKE ?', ['%' . $phoneNumber . '%']);
+                });
             }
     
             if ($underAge25 === 'yes') {
