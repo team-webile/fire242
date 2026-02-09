@@ -1045,7 +1045,8 @@ class DashboardStatsController extends Controller
             'voter' => 'Voter ID',
             'const' => 'Constituency ID',
             'constituency_name' => 'Constituency Name',
-            'polling' => 'Polling Station'
+            'polling' => 'Polling Station',
+            'phone_number' => 'Phone Number'
         ];  
 
         // Get search parameters
@@ -1064,6 +1065,7 @@ class DashboardStatsController extends Controller
         $pobis = $request->input('pobis');
         $pobcn = $request->input('pobcn');
         $existsInDatabase = $request->input('exists_in_database');
+        $phoneNumber = $request->input('phone_number') ?? $request->input('phone') ?? $request->input('cell_phone');
 
 
         // Apply filters
@@ -1082,7 +1084,7 @@ class DashboardStatsController extends Controller
             FROM surveys
             ORDER BY voter_id, created_at DESC
         ) AS latest_surveys"), 'surveys.id', '=', 'latest_surveys.id')
-        ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for')
+        ->select('voters.*', 'constituencies.name as constituency_name', 'surveys.id as survey_id', 'surveys.created_at as survey_date', 'surveys.user_id', 'surveys.voting_for', 'surveys.cell_phone', 'surveys.cell_phone_code')
         ->leftJoin('constituencies', 'voters.const', '=', 'constituencies.id')
         ->where('surveys.voting_for','undecided')->orderBy('surveys.id', 'desc');
 
@@ -1095,6 +1097,19 @@ class DashboardStatsController extends Controller
 
         if (!empty($polling) && is_numeric($polling)) {
             $query->where('voters.polling', $polling);
+        }
+
+        // Phone search
+        if (!empty($phoneNumber)) {
+            $cleaned = preg_replace('/[^0-9]/', '', $phoneNumber);
+            $query->where(function ($q) use ($phoneNumber, $cleaned) {
+                $q->whereRaw('surveys.cell_phone_code ILIKE ?', ['%' . $phoneNumber . '%'])
+                  ->orWhereRaw('surveys.cell_phone ILIKE ?', ['%' . $phoneNumber . '%'])
+                  ->orWhereRaw('(COALESCE(surveys.cell_phone_code, \'\') || COALESCE(surveys.cell_phone, \'\')) ILIKE ?', ['%' . $phoneNumber . '%']);
+                if (!empty($cleaned)) {
+                    $q->orWhereRaw('REGEXP_REPLACE(COALESCE(surveys.cell_phone_code, \'\') || COALESCE(surveys.cell_phone, \'\'), \'[^0-9]\', \'\', \'g\') LIKE ?', ['%' . $cleaned . '%']);
+                }
+            });
         }
 
         if ($underAge25 === 'yes') {
@@ -2607,7 +2622,7 @@ class DashboardStatsController extends Controller
             $pobcn = $request->input('pobcn');
             $polling = $request->input('polling');
             $existsInDatabase = $request->input('exists_in_database');
-            $phoneNumber = $request->input('phone_number');
+            $phoneNumber = $request->input('phone_number') ?? $request->input('phone') ?? $request->input('cell_phone');
             $sortBy = $request->input('sort_by'); // voter, const, or polling
             $sortOrder = $request->input('sort_order', 'asc'); // asc or desc
     
@@ -2652,12 +2667,17 @@ class DashboardStatsController extends Controller
             if (!empty($voting_decision)) {
                 $query->where('surveys.voting_decision', $voting_decision);
             }
-            // Phone search: one input searches phone with code, without code, or combined (e.g. "+1242555")
+            // Phone search: one input searches phone with code, without code, or combined
+            // Also matches when stored as "+1-242 8281506" and user searches "8281506"
             if (!empty($phoneNumber)) {
-                $query->where(function ($q) use ($phoneNumber) {
+                $cleaned = preg_replace('/[^0-9]/', '', $phoneNumber);
+                $query->where(function ($q) use ($phoneNumber, $cleaned) {
                     $q->whereRaw('surveys.cell_phone_code ILIKE ?', ['%' . $phoneNumber . '%'])
                       ->orWhereRaw('surveys.cell_phone ILIKE ?', ['%' . $phoneNumber . '%'])
                       ->orWhereRaw('(COALESCE(surveys.cell_phone_code, \'\') || COALESCE(surveys.cell_phone, \'\')) ILIKE ?', ['%' . $phoneNumber . '%']);
+                    if (!empty($cleaned)) {
+                        $q->orWhereRaw('REGEXP_REPLACE(COALESCE(surveys.cell_phone_code, \'\') || COALESCE(surveys.cell_phone, \'\'), \'[^0-9]\', \'\', \'g\') LIKE ?', ['%' . $cleaned . '%']);
+                    }
                 });
             }
             

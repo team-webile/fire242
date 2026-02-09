@@ -2106,7 +2106,7 @@ class DashboardStatsController extends Controller
             $pobcn = $request->input('pobcn');
             $polling = $request->input('polling'); 
              $existsInDatabase = $request->input('exists_in_database');
-             $phoneNumber = $request->input('phone_number');
+             $phoneNumber = $request->input('phone_number') ?? $request->input('phone') ?? $request->input('cell_phone');
              $sortBy = $request->input('sort_by'); // voter, const, or polling
              $sortOrder = $request->input('sort_order', 'asc'); // asc or desc  
     
@@ -2137,12 +2137,16 @@ class DashboardStatsController extends Controller
             if (!empty($voting_decision)) {
                 $query->where('surveys.voting_decision', $voting_decision);
             }
-            // Phone search: one input searches phone with code, without code, or combined (e.g. "+1242555")
+            // Phone search: one input searches phone with code, without code, or combined
             if (!empty($phoneNumber)) {
-                $query->where(function ($q) use ($phoneNumber) {
+                $cleaned = preg_replace('/[^0-9]/', '', $phoneNumber);
+                $query->where(function ($q) use ($phoneNumber, $cleaned) {
                     $q->whereRaw('surveys.cell_phone_code ILIKE ?', ['%' . $phoneNumber . '%'])
                       ->orWhereRaw('surveys.cell_phone ILIKE ?', ['%' . $phoneNumber . '%'])
                       ->orWhereRaw('(COALESCE(surveys.cell_phone_code, \'\') || COALESCE(surveys.cell_phone, \'\')) ILIKE ?', ['%' . $phoneNumber . '%']);
+                    if (!empty($cleaned)) {
+                        $q->orWhereRaw('REGEXP_REPLACE(COALESCE(surveys.cell_phone_code, \'\') || COALESCE(surveys.cell_phone, \'\'), \'[^0-9]\', \'\', \'g\') LIKE ?', ['%' . $cleaned . '%']);
+                    }
                 });
             }
     
