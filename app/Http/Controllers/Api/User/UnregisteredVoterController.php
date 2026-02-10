@@ -112,6 +112,7 @@ class UnregisteredVoterController extends Controller
                             $getVoter->second_name = $voterData['last_name'] ?? null;
                             $getVoter->gender = $voterData['gender'] ?? null;
                             $getVoter->address = $voterData['address'] ?? null;
+                            $getVoter->phone_code = $voterData['phone_code'] ?? null;
                             $getVoter->phone_number = $voterData['phone'] ?? null;
                             $getVoter->voter_voting_for = $voterData['party'] ?? null;
                             $getVoter->living_constituency = $voterData['living_constituency'] ?? null;

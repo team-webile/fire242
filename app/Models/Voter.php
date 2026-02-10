@@ -32,6 +32,7 @@ class Voter extends Model
         'voter_voting_for',
         'surveyer_constituency',
         'email',
+        'phone_code',
         'phone_number',
         'note',
         'user_id',

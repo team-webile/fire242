@@ -49,6 +49,7 @@ class VoterController extends Controller
             'gender' => 'nullable|in:male,female,other',
             'address' => 'nullable|string',
             'phone_number' => 'nullable|string|max:20',
+            'phone_code' => 'nullable|string|max:20',
             'voter_voting_for' => 'nullable|string',
             'living_constituency' => 'nullable|integer|exists:constituencies,id',
             'surveyer_constituency' => 'nullable|integer|exists:constituencies,id',
@@ -72,6 +73,7 @@ class VoterController extends Controller
         if (isset($data['gender'])) $voter->gender = $data['gender'];
         if (isset($data['address'])) $voter->address = $data['address'];
         if (isset($data['phone_number'])) $voter->phone_number = $data['phone_number'];
+        if (isset($data['phone_code'])) $voter->phone_code = $data['phone_code'];
         if (isset($data['voter_voting_for'])) $voter->voter_voting_for = $data['voter_voting_for'];
         if (isset($data['living_constituency'])) $voter->living_constituency = $data['living_constituency'];
         if (isset($data['surveyer_constituency'])) $voter->surveyer_constituency = $data['surveyer_constituency'];
