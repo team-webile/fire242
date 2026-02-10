@@ -1808,7 +1808,8 @@ class SurveyController extends Controller
     public function allConstituency(Request $request)  
     {   
         
-        $constituencies = Constituency::all(); 
+        $constituencies = Constituency::orderBy('name', 'asc')->get();
+
 
 
         $constituencyIds = explode(',', auth()->user()->constituency_id);
