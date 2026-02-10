@@ -101,11 +101,10 @@ class VoterController extends Controller
             ], 403);
         }
     
-       
+
         $query = Voter::with(['constituency','user','living_constituency','surveyer_constituency'])
             ->where('voters.is_national', 1); 
-            
- 
+
         $searchableFields = [
             'first_name' => 'First Name',
             'second_name' => 'Second Name',
@@ -138,7 +137,28 @@ class VoterController extends Controller
         $export = $request->input('export');
         $living_constituency_name = $request->input('living_constituency_name');
         $living_const = $request->input('living_const');
-       
+        $phone_number = $request->input('phone_number');
+
+        // Correct phone number filtering in the voter table (not survey)
+        if (!empty($phone_number)) {
+            $cleaned = preg_replace('/[^0-9]/', '', $phone_number); 
+
+            $query->where(function ($q) use ($phone_number, $cleaned) {
+                // Try searching by phone_number and phone_code columns (voters table)
+                $q->whereRaw('voters.phone_code ILIKE ?', ['%' . $phone_number . '%'])
+                  ->orWhereRaw('voters.phone_number ILIKE ?', ['%' . $phone_number . '%'])
+                  ->orWhereRaw('(COALESCE(voters.phone_code, \'\') || COALESCE(voters.phone_number, \'\')) ILIKE ?', ['%' . $phone_number . '%']);
+
+                if (!empty($cleaned)) {
+                    // Search by numbers only (strip non-digit characters)
+                    $q->orWhereRaw(
+                        "REGEXP_REPLACE(COALESCE(voters.phone_code, '') || COALESCE(voters.phone_number, ''), '[^0-9]', '', 'g') LIKE ?",
+                        ['%' . $cleaned . '%']
+                    );
+                }
+            });
+        }
+
         if (isset($living_constituency_name) && !empty($living_constituency_name)) {
             $query->whereHas('living_constituency', function ($q) use ($living_constituency_name) {
                 $q->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($living_constituency_name) . '%']);
