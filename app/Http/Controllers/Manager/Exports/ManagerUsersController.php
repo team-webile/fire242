@@ -305,7 +305,7 @@ class ManagerUsersController extends Controller
             $columns = array_map(function($column) {
                 return strtolower(urldecode(trim($column)));
             }, explode(',', $_GET['columns']));
-           dd($columns);
+            
             return Excel::download(new MangerFNMVotersExport($results, $request, $columns), 'Unknown voters_' . $timestamp . '.xlsx');   
 
         }

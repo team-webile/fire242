@@ -52,6 +52,15 @@ class MangerFNMVotersExport implements FromCollection, WithHeadings, WithStyles
             if (in_array('last name', $this->columns)) {
                 $row['Last Name'] = $voter->surname;
             }
+             
+
+            if (in_array('cell phone number', $this->columns)) {
+                $code = $voter->cell_phone_code ?? '';
+                $phone = $voter->cell_phone ?? '';
+                $row['Cell Phone Number'] = (trim((string) $code) !== '' && trim((string) $phone) !== '')
+                    ? trim($code) . ' ' . trim($phone)
+                    : '';
+            }
             if (in_array('surveyed by', $this->columns)) {
              
                 $row['Surveyed By'] = $voter->user->name ?? '';
@@ -106,6 +115,7 @@ class MangerFNMVotersExport implements FromCollection, WithHeadings, WithStyles
                 case 'first name': $headers[] = 'First Name'; break;
                 case 'second name': $headers[] = 'Second Name'; break;
                 case 'last name': $headers[] = 'Last Name'; break;
+                case 'cell phone number': $headers[] = 'Cell Phone Number'; break;
                 case 'surveyed by': $headers[] = 'Surveyed By'; break;
                 case 'surveyed by email': $headers[] = 'Surveyed By Email'; break;
                 case 'date of birth': $headers[] = 'Date of Birth'; break;
@@ -150,6 +160,9 @@ class MangerFNMVotersExport implements FromCollection, WithHeadings, WithStyles
                 case 'pobse':
                 case 'voting for':
                     $columnWidths[$letter] = 15;
+                    break;
+                case 'cell phone number':
+                    $columnWidths[$letter] = 18;
                     break;
                 case 'surveyed by':
                 case 'surveyed by email':
