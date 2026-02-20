@@ -3129,7 +3129,7 @@ class VoterController extends Controller
         $call_center_voter_name = $request->query('call_center_voter_name') ?? $request->input('call_center_voter_name');
         $call_center_follow_up = $request->query('call_center_follow_up') ?? $request->input('call_center_follow_up');
         $call_center_date_time = $request->query('call_center_date_time') ?? $request->input('call_center_date_time');
-        $voter_id = $request->query('voter_id') ?? $request->input('voter_id');
+        $voter_id = $request->query('voter') ?? $request->input('voter');
         $surname = $request->query('surname') ?? $request->input('surname');
         $firstName = $request->query('first_name') ?? $request->input('first_name');
         $secondName = $request->query('second_name') ?? $request->input('second_name');
