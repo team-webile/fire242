@@ -400,6 +400,7 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('constituencies_get', [App\Http\Controllers\Api\Manager\SurveyController::class, 'getUserConstituency_get']);
         Route::get('voters/suggestions', [App\Http\Controllers\Api\Manager\SurveyController::class, 'getSuggestions']);
         Route::get('surveys/list', [App\Http\Controllers\Api\Manager\SurveyController::class, 'index']);
+        Route::get('call-center/list', [App\Http\Controllers\Api\Manager\SurveyController::class, 'callCenterList']);
         Route::get('surveys/{id}', [App\Http\Controllers\Api\Manager\SurveyController::class, 'show']);
         Route::post('surveys/{id}', [App\Http\Controllers\Api\Manager\SurveyController::class, 'update']);
         Route::post('surveys', [App\Http\Controllers\Api\Manager\SurveyController::class, 'store']);
