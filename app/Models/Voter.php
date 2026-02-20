@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Survey;
 use App\Models\User;
 use App\Models\Constituency;
-
+use App\Models\CallCenter;
 class Voter extends Model
 {
     protected $fillable = [
@@ -83,6 +83,11 @@ class Voter extends Model
     public function surveyer_constituency(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Constituency::class, 'surveyer_constituency', 'id'); 
+    }
+
+    public function callCenter()
+    {
+        return $this->hasMany(CallCenter::class); 
     }
 
  

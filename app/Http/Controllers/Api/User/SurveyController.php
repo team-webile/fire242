@@ -631,7 +631,11 @@ class SurveyController extends Controller
                         ], 500);
                     }
 
-                } else { 
+                }elseif($request->call_center){ 
+
+                    dd($request->all()); 
+
+                }else { 
 
                     \Log::info('Survey store request:', [
                         'user_id' => auth()->id(),
