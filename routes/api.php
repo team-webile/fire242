@@ -136,7 +136,7 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('birthday-voters', [VoterBirthdayController::class, 'birthdayVoters']);
         Route::get('birthday-voters-contacted/{id}', [VoterBirthdayController::class, 'birthdayVotersContacted']);
 
-        Route::get('call-center/list', [SurveyController::class, 'callCenterList']);
+        Route::get('call-center/list', [VoterController::class, 'callCenterList']);
 
 
 
@@ -400,7 +400,7 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('constituencies_get', [App\Http\Controllers\Api\Manager\SurveyController::class, 'getUserConstituency_get']);
         Route::get('voters/suggestions', [App\Http\Controllers\Api\Manager\SurveyController::class, 'getSuggestions']);
         Route::get('surveys/list', [App\Http\Controllers\Api\Manager\SurveyController::class, 'index']);
-        Route::get('call-center/list', [App\Http\Controllers\Api\Manager\SurveyController::class, 'callCenterList']);
+        Route::get('call-center/list', [App\Http\Controllers\Api\Manager\SurveyController::class, 'callCenterList']); 
         Route::get('surveys/{id}', [App\Http\Controllers\Api\Manager\SurveyController::class, 'show']);
         Route::post('surveys/{id}', [App\Http\Controllers\Api\Manager\SurveyController::class, 'update']);
         Route::post('surveys', [App\Http\Controllers\Api\Manager\SurveyController::class, 'store']);
@@ -421,7 +421,6 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('voters-history/{id}', [App\Http\Controllers\Api\Manager\UserVoterController::class, 'getVotersHistory']);
         Route::get('voters-list/newly-registered', [App\Http\Controllers\Api\Manager\UserVoterController::class, 'newlyRegistered']);
         Route::get('voters/newly-registered', [App\Http\Controllers\Api\Manager\UserVoterController::class, 'newlyRegistered']);
-        
         Route::get('duplicate-voters', [App\Http\Controllers\Api\Manager\UserVoterController::class, 'duplicateVoters']);
         Route::get('birthday-voters', [App\Http\Controllers\Api\Manager\UserVoterBirthdayController::class, 'userBirthdayVoters']);
         Route::get('birthday-voters-contacted/{id}', [App\Http\Controllers\Api\Manager\UserVoterBirthdayController::class, 'userBirthdayVotersContacted']);
