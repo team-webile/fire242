@@ -662,7 +662,7 @@ class SurveyController extends Controller
                     try {
                         $callCenter = CallCenter::create([ 
                             'voter_id' => $request->voter_id,
-                            'call_center' => true,
+                            // 'call_center' => true,
                             'call_center_caller_id' => $request->input('call_center_caller_id'),
                             'call_center_caller_name' => $request->input('call_center_caller_name'),
                             'call_center_voter_name' => $request->input('call_center_voter_name'),
