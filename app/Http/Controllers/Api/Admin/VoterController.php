@@ -3205,11 +3205,9 @@ class VoterController extends Controller
         }
 
         $callCenters = $query->orderBy('id', 'desc')->paginate($request->get('per_page', 20));
-
         return response()->json([
             'success' => true,
-            'data' => $callCenters,
-            
+            'data' => $callCenters
         ]);
     } 
 }
