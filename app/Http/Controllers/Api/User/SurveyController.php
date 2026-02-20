@@ -1960,7 +1960,7 @@ class SurveyController extends Controller
         $firstName = $request->query('first_name') ?? $request->input('first_name');
         $secondName = $request->query('second_name') ?? $request->input('second_name');
         $constituencyName = $request->query('constituency_name') ?? $request->input('constituency_name');
-        $constituencyId = $request->query('constituency_id') ?? $request->input('constituency_id');
+        $constituencyId = $request->query('const') ?? $request->input('const');
 
         // Voter relation filters (use whereHas; voters table is not joined on call_center)
         if (trim((string) $surname) !== '') {
