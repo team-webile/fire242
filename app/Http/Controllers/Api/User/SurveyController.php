@@ -675,6 +675,7 @@ class SurveyController extends Controller
                             'call_center_soliciting_volunteers' => $request->input('call_center_soliciting_volunteers'),
                             'call_center_address_special_concerns' => $request->input('call_center_address_special_concerns'),
                             'call_center_voting_decisions' => $request->input('call_center_voting_decisions'),
+                            'user_id' => auth()->user()->id, 
                         ];
 
                         $callCenter = CallCenter::updateOrCreate(
