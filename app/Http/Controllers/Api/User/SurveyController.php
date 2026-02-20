@@ -660,9 +660,7 @@ class SurveyController extends Controller
                     }
 
                     try {
-                        $callCenter = CallCenter::create([ 
-                            'voter_id' => $request->voter_id,
-                            // 'call_center' => true,
+                        $payload = [
                             'call_center_caller_id' => $request->input('call_center_caller_id'),
                             'call_center_caller_name' => $request->input('call_center_caller_name'),
                             'call_center_voter_name' => $request->input('call_center_voter_name'),
@@ -676,15 +674,24 @@ class SurveyController extends Controller
                             'call_center_soliciting_volunteers' => $request->input('call_center_soliciting_volunteers'),
                             'call_center_address_special_concerns' => $request->input('call_center_address_special_concerns'),
                             'call_center_voting_decisions' => $request->input('call_center_voting_decisions'),
-                        ]);
+                        ];
+
+                        $callCenter = CallCenter::updateOrCreate(
+                            ['voter_id' => $request->voter_id],
+                            $payload
+                        );
+
+                        $message = $callCenter->wasRecentlyCreated
+                            ? 'Call center record created successfully'
+                            : 'Call center record updated successfully';
 
                         return response()->json([
                             'success' => true,
-                            'message' => 'Call center record created successfully',
+                            'message' => $message,
                             'data' => ['call_center' => $callCenter]
-                        ], 201);
+                        ], 200);
                     } catch (\Exception $e) {
-                        \Log::error('Error creating call center record: ' . $e->getMessage());
+                        \Log::error('Error saving call center record: ' . $e->getMessage());
                         return response()->json([
                             'success' => false,
                             'message' => 'Error saving call center data',
