@@ -1294,7 +1294,7 @@ class VoterController extends Controller
 
        $callCenters = $query->orderBy('id', 'desc')->get();
 
-       $columnsParam = $request->query('columns', $request->input('columns', 'id,voter id,first name,last name,constituency,constituency name,polling,address,caller name,caller phone,caller email,date'));
+       $columnsParam = $request->query('columns') ?? $request->input('columns');
        $columns = array_map(function ($column) {
            return strtolower(urldecode(trim($column)));
        }, explode(',', $columnsParam));
