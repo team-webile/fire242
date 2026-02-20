@@ -1300,12 +1300,12 @@ class VoterController extends Controller
             'message' => 'Columns parameter is required'
         ], 400);
     }
-    dd($_GET['columns']);
+ 
     $columns = array_map(function($column) {
         return strtolower(urldecode(trim($column)));
     }, explode(',', $_GET['columns']));
 
-    dd($columns);
+ 
        $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
        return Excel::download(new CallCenterExport($callCenters, $request, $columns), 'Call_Center_' . $timestamp . '.xlsx'); 
 

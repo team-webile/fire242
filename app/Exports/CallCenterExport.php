@@ -62,6 +62,32 @@ class CallCenterExport implements FromCollection, WithHeadings, WithStyles
             if (in_array('date', $this->columns)) {
                 $row['Date'] = $callCenter->call_center_date_time;
             }
+            if (in_array('voting decision', $this->columns)) {
+                $row['Voting Decision'] = $callCenter->call_center_voting_decisions;
+            }
+            if (in_array('follow up', $this->columns)) {
+                $row['Follow Up'] = $callCenter->call_center_follow_up;
+            }
+            if (in_array('address special concerns', $this->columns)) {
+                $row['Address Special Concerns'] = $callCenter->call_center_address_special_concerns;
+            }
+            if (in_array('voter contacts', $this->columns)) {
+                $row['Voter Contacts'] = $callCenter->call_center_list_voter_contacts;
+            }
+            if (in_array('soliciting volunteers', $this->columns)) {
+                $row['Soliciting Volunteers'] = $callCenter->call_center_soliciting_volunteers;
+            }
+            if (in_array('number called', $this->columns)) {
+                $row['Number Called'] = $callCenter->call_center_number_called;
+            }
+            if (in_array('number of calls', $this->columns)) {
+                $row['Number of Calls'] = $callCenter->call_center_number_calls_made;
+            }
+            if (in_array('created at', $this->columns)) {
+                $row['Created At'] = $callCenter->created_at
+                    ? (is_object($callCenter->created_at) ? $callCenter->created_at->format('Y-m-d H:i:s') : $callCenter->created_at)
+                    : null;
+            }
 
             return $row;
         });
@@ -84,6 +110,14 @@ class CallCenterExport implements FromCollection, WithHeadings, WithStyles
                 case 'caller phone': $headers[] = 'Caller Phone'; break;
                 case 'caller email': $headers[] = 'Caller Email'; break;
                 case 'date': $headers[] = 'Date'; break;
+                case 'voting decision': $headers[] = 'Voting Decision'; break;
+                case 'follow up': $headers[] = 'Follow Up'; break;
+                case 'address special concerns': $headers[] = 'Address Special Concerns'; break;
+                case 'voter contacts': $headers[] = 'Voter Contacts'; break;
+                case 'soliciting volunteers': $headers[] = 'Soliciting Volunteers'; break;
+                case 'number called': $headers[] = 'Number Called'; break;
+                case 'number of calls': $headers[] = 'Number of Calls'; break;
+                case 'created at': $headers[] = 'Created At'; break;
                 default: $headers[] = $column;
             }
         }

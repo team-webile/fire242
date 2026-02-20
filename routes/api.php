@@ -136,7 +136,7 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('birthday-voters', [VoterBirthdayController::class, 'birthdayVoters']);
         Route::get('birthday-voters-contacted/{id}', [VoterBirthdayController::class, 'birthdayVotersContacted']);
 
-        Route::get('call-center/list', [VoterController::class, 'callCenterList']);
+        Route::get('call-center/list', [SurveyController::class, 'callCenterList']);
 
 
 

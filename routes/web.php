@@ -112,6 +112,7 @@ Route::middleware('jwt.auth')->group(function () {
         Route::get('voters-not-in-survey/export', [ManagerVoterController::class, 'getVotersNotInSurveyExport']); 
         Route::get('voters-in-survey/export', [ManagerVoterController::class, 'getVotersInSurvey']); 
         Route::get('died-voters-in-survey/export', [ManagerVoterController::class, 'getDiedVotersInSurvey']);
+        Route::get('call-center/list/export', [ManagerVoterController::class, 'callCenterList']); 
         Route::get('users/voters-in-survey/export/{id}', [ManagerVoterController::class, 'getUserSurveys']); 
         Route::get('constituencies/export', [ManagerConstituencyController::class, 'index']);
         Route::get('users/export', [ManagerUsersController::class, 'export']); 
