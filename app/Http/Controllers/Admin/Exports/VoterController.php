@@ -1300,7 +1300,7 @@ class VoterController extends Controller
             'message' => 'Columns parameter is required'
         ], 400);
     }
-
+    dd($_GET['columns']);
     $columns = array_map(function($column) {
         return strtolower(urldecode(trim($column)));
     }, explode(',', $_GET['columns']));
