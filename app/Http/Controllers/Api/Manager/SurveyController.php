@@ -1067,11 +1067,13 @@ class SurveyController extends Controller
 
     public function callCenterList(Request $request)
     {   
-        $constituency_ids = explode(',', auth()->user()->constituency_id);
+        $constituency_ids = array_filter(explode(',', auth()->user()->constituency_id));
         $query = CallCenter::with([
             'voter:id,first_name,second_name,surname,voter,address,phone_number,email,const,polling,living_constituency,surveyer_constituency,is_national,voter_voting_for,user_id',
             'voter.constituency:id,name'
-        ])->whereIn('voters.const', $constituency_ids);
+        ])->whereHas('voter', function ($q) use ($constituency_ids) {
+            $q->whereIn('const', $constituency_ids);
+        });
 
         // Gather all search parameters (query + input), trim and lowercase for string comparison
         $voting_for = $request->query('voting_for') ?? $request->input('voting_for');
