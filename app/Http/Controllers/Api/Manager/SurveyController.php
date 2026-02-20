@@ -1071,9 +1071,7 @@ class SurveyController extends Controller
         $query = CallCenter::with([
             'voter:id,first_name,second_name,surname,voter,address,phone_number,email,const,polling,living_constituency,surveyer_constituency,is_national,voter_voting_for,user_id',
             'voter.constituency:id,name'
-        ])
-            ->where('user_id', auth()->user()->id)
-            ->whereIn('voter.const', $constituency_ids);
+        ])->whereIn('voters.const', $constituency_ids);
 
         // Gather all search parameters (query + input), trim and lowercase for string comparison
         $voting_for = $request->query('voting_for') ?? $request->input('voting_for');
