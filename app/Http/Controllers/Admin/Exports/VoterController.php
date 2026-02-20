@@ -10,6 +10,7 @@ use App\Models\UnregisteredVoter;
 use App\Models\Survey;
 use App\Exports\VotersDiffAddressExport;
 use App\Exports\VotersExport;
+use App\Exports\CallCenterExport;
 use App\Exports\SurveyVotersExport; 
 use App\Exports\SingleUser_SurveysExport;
 use App\Models\CallCenter;
@@ -1293,13 +1294,13 @@ class VoterController extends Controller
 
        $callCenters = $query->orderBy('id', 'desc')->get();
 
+       $columnsParam = $request->query('columns', $request->input('columns', 'id,voter id,first name,last name,constituency,constituency name,polling,address,caller name,caller phone,caller email,date'));
+       $columns = array_map(function ($column) {
+           return strtolower(urldecode(trim($column)));
+       }, explode(',', $columnsParam));
 
-       $columns = array_map(function($column) {
-        return strtolower(urldecode(trim($column)));
-    }, explode(',', $_GET['columns']));
-    dd($columns); 
-    $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
-    return Excel::download(new CallCenterExport($voters, $request, $columns), 'Voters Diff Address_' . $timestamp . '.xlsx'); 
+       $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
+       return Excel::download(new CallCenterExport($callCenters, $request, $columns), 'Call_Center_' . $timestamp . '.xlsx'); 
 
 
         
