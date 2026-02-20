@@ -9,6 +9,7 @@ use App\Models\VoterHistory;
 use Illuminate\Http\Request;
 use App\Models\UnregisteredVoter;
 use App\Models\Survey;
+use App\Models\CallCenter;
  
 use DB;
 use Illuminate\Support\Facades\Cache;
@@ -3108,5 +3109,106 @@ class VoterController extends Controller
                 ];
             });
         return response()->json($addresses);
+    } 
+
+
+
+    public function callCenterList(Request $request)
+    {   
+        
+        $query = CallCenter::with([
+            'voter:id,first_name,second_name,surname,voter,address,phone_number,email,const,polling,living_constituency,surveyer_constituency,is_national,voter_voting_for,user_id',
+            'voter.constituency:id,name'
+        ]);
+
+        // Gather all search parameters (query + input), trim and lowercase for string comparison
+        $voting_for = $request->query('voting_for') ?? $request->input('voting_for');
+        $call_center_email = $request->query('call_center_email') ?? $request->input('call_center_email');
+        $call_center_caller_name = $request->query('call_center_caller_name') ?? $request->input('call_center_caller_name');
+        $call_center_phone = $request->query('call_center_phone') ?? $request->input('call_center_phone');
+        $call_center_voter_name = $request->query('call_center_voter_name') ?? $request->input('call_center_voter_name');
+        $call_center_follow_up = $request->query('call_center_follow_up') ?? $request->input('call_center_follow_up');
+        $call_center_date_time = $request->query('call_center_date_time') ?? $request->input('call_center_date_time');
+        $voter_id = $request->query('voter_id') ?? $request->input('voter_id');
+        $surname = $request->query('surname') ?? $request->input('surname');
+        $firstName = $request->query('first_name') ?? $request->input('first_name');
+        $secondName = $request->query('second_name') ?? $request->input('second_name');
+        $constituencyName = $request->query('constituency_name') ?? $request->input('constituency_name');
+        $constituencyId = $request->query('constituency_id') ?? $request->input('constituency_id');
+
+        // Voter relation filters (use whereHas; voters table is not joined on call_center)
+        if (trim((string) $surname) !== '') {
+            $term = '%' . strtolower(trim($surname)) . '%';
+            $query->whereHas('voter', function ($q) use ($term) {
+                $q->whereRaw('LOWER(surname) LIKE ?', [$term]);
+            });
+        }
+        if (trim((string) $firstName) !== '') {
+            $term = '%' . strtolower(trim($firstName)) . '%';
+            $query->whereHas('voter', function ($q) use ($term) {
+                $q->whereRaw('LOWER(first_name) LIKE ?', [$term]);
+            });
+        }
+        if (trim((string) $secondName) !== '') {
+            $term = '%' . strtolower(trim($secondName)) . '%';
+            $query->whereHas('voter', function ($q) use ($term) {
+                $q->whereRaw('LOWER(second_name) LIKE ?', [$term]);
+            });
+        }
+        if (trim((string) $constituencyName) !== '') {
+            $term = '%' . strtolower(trim($constituencyName)) . '%';
+            $query->whereHas('voter.constituency', function ($q) use ($term) {
+                $q->whereRaw('LOWER(name) LIKE ?', [$term]);
+            });
+        }
+        if (!empty($constituencyId) && is_numeric($constituencyId)) {
+            $query->whereHas('voter', function ($q) use ($constituencyId) {
+                $q->where('const', (int) $constituencyId);
+            });
+        }
+        if (trim((string) $voter_id) !== '') {
+            $query->whereHas('voter', function ($q) use ($voter_id) {
+                $q->where('voter', $voter_id);
+            });
+        }
+        if (trim((string) $voting_for) !== '') {
+            $term = '%' . strtolower(trim($voting_for)) . '%';
+            $query->whereHas('voter', function ($q) use ($term) {
+                $q->whereRaw('LOWER(voter_voting_for) LIKE ?', [$term]);
+            });
+        }
+
+        // Call center table fields (case-insensitive LIKE)
+        if (trim((string) $call_center_email) !== '') {
+            $term = '%' . strtolower(trim($call_center_email)) . '%';
+            $query->whereRaw('LOWER(call_center_email) LIKE ?', [$term]);
+        }
+        if (trim((string) $call_center_caller_name) !== '') {
+            $term = '%' . strtolower(trim($call_center_caller_name)) . '%';
+            $query->whereRaw('LOWER(call_center_caller_name) LIKE ?', [$term]);
+        }
+        if (trim((string) $call_center_phone) !== '') {
+            $term = '%' . strtolower(trim($call_center_phone)) . '%';
+            $query->whereRaw('LOWER(call_center_phone) LIKE ?', [$term]);
+        }
+        if (trim((string) $call_center_voter_name) !== '') {
+            $term = '%' . strtolower(trim($call_center_voter_name)) . '%';
+            $query->whereRaw('LOWER(call_center_voter_name) LIKE ?', [$term]);
+        }
+        if (trim((string) $call_center_follow_up) !== '') {
+            $term = '%' . strtolower(trim($call_center_follow_up)) . '%';
+            $query->whereRaw('LOWER(call_center_follow_up) LIKE ?', [$term]);
+        }
+        if (trim((string) $call_center_date_time) !== '') {
+            $term = '%' . strtolower(trim($call_center_date_time)) . '%';
+            $query->whereRaw('LOWER(call_center_date_time::text) LIKE ?', [$term]);
+        }
+
+        $callCenters = $query->orderBy('id', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $callCenters
+        ]);
     } 
 }
