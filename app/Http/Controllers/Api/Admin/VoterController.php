@@ -3204,11 +3204,12 @@ class VoterController extends Controller
             $query->whereRaw('LOWER(call_center_date_time::text) LIKE ?', [$term]);
         }
 
-        $callCenters = $query->orderBy('id', 'desc')->get();
+        $callCenters = $query->orderBy('id', 'desc')->paginate($request->get('per_page', 20));
 
         return response()->json([
             'success' => true,
-            'data' => $callCenters
+            'data' => $callCenters,
+            
         ]);
     } 
 }
