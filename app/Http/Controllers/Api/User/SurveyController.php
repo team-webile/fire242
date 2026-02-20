@@ -19,6 +19,7 @@ use App\Models\SystemSetting;
 use App\Models\Question;
 use App\Models\SurveyAnswer;
 use App\Models\Answer;
+use App\Models\CallCenter;
 use Illuminate\Support\Facades\Log;
 use DB;
 
@@ -631,10 +632,65 @@ class SurveyController extends Controller
                         ], 500);
                     }
 
-                }elseif($request->call_center){ 
+                }elseif($request->call_center){
 
-                    dd($request->all()); 
+                    $validator = Validator::make($request->all(), [
+                        'voter_id' => 'required|exists:voters,id',
+                        'call_center_caller_id' => 'nullable|string',
+                        'call_center_caller_name' => 'nullable|string',
+                        'call_center_voter_name' => 'nullable|string',
+                        'call_center_date_time' => 'nullable|string',
+                        'call_center_email' => 'nullable|email',
+                        'call_center_phone' => 'nullable|string',
+                        'call_center_follow_up' => 'nullable|string',
+                        'call_center_list_voter_contacts' => 'nullable|string',
+                        'call_center_number_called' => 'nullable|string',
+                        'call_center_number_calls_made' => 'nullable|string',
+                        'call_center_soliciting_volunteers' => 'nullable|string',
+                        'call_center_address_special_concerns' => 'nullable|string',
+                        'call_center_voting_decisions' => 'nullable|string',
+                    ]);
 
+                    if ($validator->fails()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Validation failed',
+                            'errors' => $validator->errors()
+                        ], 422);
+                    }
+
+                    try {
+                        $callCenter = CallCenter::create([ 
+                            'voter_id' => $request->voter_id,
+                            'call_center' => true,
+                            'call_center_caller_id' => $request->input('call_center_caller_id'),
+                            'call_center_caller_name' => $request->input('call_center_caller_name'),
+                            'call_center_voter_name' => $request->input('call_center_voter_name'),
+                            'call_center_date_time' => $request->input('call_center_date_time'),
+                            'call_center_email' => $request->input('call_center_email'),
+                            'call_center_phone' => $request->input('call_center_phone'),
+                            'call_center_follow_up' => $request->input('call_center_follow_up'),
+                            'call_center_list_voter_contacts' => $request->input('call_center_list_voter_contacts'),
+                            'call_center_number_called' => $request->input('call_center_number_called'),
+                            'call_center_number_calls_made' => $request->input('call_center_number_calls_made'),
+                            'call_center_soliciting_volunteers' => $request->input('call_center_soliciting_volunteers'),
+                            'call_center_address_special_concerns' => $request->input('call_center_address_special_concerns'),
+                            'call_center_voting_decisions' => $request->input('call_center_voting_decisions'),
+                        ]);
+
+                        return response()->json([
+                            'success' => true,
+                            'message' => 'Call center record created successfully',
+                            'data' => ['call_center' => $callCenter]
+                        ], 201);
+                    } catch (\Exception $e) {
+                        \Log::error('Error creating call center record: ' . $e->getMessage());
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Error saving call center data',
+                            'error' => $e->getMessage()
+                        ], 500);
+                    }
                 }else { 
 
                     \Log::info('Survey store request:', [
