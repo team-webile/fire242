@@ -1559,9 +1559,11 @@ class SurveyController extends Controller
             }
         }
 
-        // Add address voters to voter object
+        // Add address voters and call center data to voter object
         if ($voter) {
             $voter->address_voters = $addressVoters;
+            // Load call center record for this voter (voters.id)
+            $voter->call_center = CallCenter::where('voter_id', $voter->id)->first();
         }
  
 
