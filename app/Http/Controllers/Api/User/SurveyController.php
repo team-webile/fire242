@@ -1939,6 +1939,16 @@ class SurveyController extends Controller
 
 
 
+    public function callCenterList(Request $request)
+    {
+        $callCenters = CallCenter::with('voter:id,first_name,second_name,surname,voter,address,phone_number,email,const,polling,living_constituency,surveyer_constituency,is_national,voter_voting_for,surveyer_constituency,user_id')->where('user_id', auth()->user()->id)->get();
+        return response()->json([
+            'success' => true,
+            'data' => $callCenters
+        ]);
+    }
+
+
     
 
 

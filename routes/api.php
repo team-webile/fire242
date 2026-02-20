@@ -307,7 +307,8 @@ Route::middleware([ 'jwt.auth'])->group(function () {
         Route::get('constituencies', [SurveyController::class, 'getUserConstituency']);
         Route::get('voters/suggestions', [SurveyController::class, 'getSuggestions']);
         Route::get('all-constituency', [SurveyController::class, 'allConstituency']);
-        Route::get('surveys/list', [SurveyController::class, 'index']);
+        Route::get('surveys/list', [SurveyController::class, 'index']); 
+        Route::get('call-center/list', [SurveyController::class, 'callCenterList']);
         Route::post('surveys', [SurveyController::class, 'store']);
         Route::get('surveys/{id}', [SurveyController::class, 'show']);
         Route::put('surveys/{id}', [SurveyController::class, 'update']);
