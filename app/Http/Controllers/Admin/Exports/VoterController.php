@@ -1294,11 +1294,18 @@ class VoterController extends Controller
 
        $callCenters = $query->orderBy('id', 'desc')->get();
 
-       $columnsParam = $request->query('columns') ?? $request->input('columns');
-       $columns = array_map(function ($column) {
-           return strtolower(urldecode(trim($column)));
-       }, explode(',', $columnsParam));
-dd($columns);
+       if (!isset($_GET['columns'])) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Columns parameter is required'
+        ], 400);
+    }
+
+    $columns = array_map(function($column) {
+        return strtolower(urldecode(trim($column)));
+    }, explode(',', $_GET['columns']));
+
+    dd($columns);
        $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
        return Excel::download(new CallCenterExport($callCenters, $request, $columns), 'Call_Center_' . $timestamp . '.xlsx'); 
 
