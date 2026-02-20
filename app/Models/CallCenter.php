@@ -30,4 +30,10 @@ class CallCenter extends Model
     {
         return $this->belongsTo(Voter::class);
     }
+
+
+    public function answers()
+    {
+        return $this->hasMany(CallCenterAnswer::class, 'call_center_id');
+    }
 }

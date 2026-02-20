@@ -20,6 +20,7 @@ use App\Models\Question;
 use App\Models\SurveyAnswer;
 use App\Models\Answer;
 use App\Models\CallCenter;
+use App\Models\CallCenterAnswer;
 use Illuminate\Support\Facades\Log;
 use DB;
 
@@ -681,6 +682,9 @@ class SurveyController extends Controller
                             $payload
                         );
 
+
+                        $this->storeCallCenterAnswers($request, $callCenter);
+
                         $message = $callCenter->wasRecentlyCreated
                             ? 'Call center record created successfully'
                             : 'Call center record updated successfully';
@@ -1294,6 +1298,20 @@ class SurveyController extends Controller
                 if (isset($questionData['question_id']) && isset($questionData['answer_id'])) {
                     SurveyAnswer::create([
                         'survey_id' => $survey->id,
+                        'question_id' => $questionData['question_id'],
+                        'answer_id' => $questionData['answer_id']
+                    ]);
+                }
+            }
+        }
+    }
+    public function storeCallCenterAnswers(Request $request,$callCenter)
+    {
+        if ($request->has('questions') && is_array($request->questions)) {
+            foreach ($request->questions as $questionData) {
+                if (isset($questionData['question_id']) && isset($questionData['answer_id'])) {
+                    CallCenterAnswer::create([
+                        'call_center_id' => $callCenter->id,
                         'question_id' => $questionData['question_id'],
                         'answer_id' => $questionData['answer_id']
                     ]);
