@@ -2017,29 +2017,47 @@ public function duplicateVoters(Request $request)
         ], 400);
     }
 
+    // $query = Voter::query()
+    // ->select('voters.*', 'constituencies.name as constituency_name')
+    // ->join('constituencies', 'voters.const', '=', 'constituencies.id')
+    // ->whereIn('voters.const', $constituency_ids)
+    // ->where('voters.exists_in_database', false)
+    // //->whereExists(function ($subquery) {
+    // ->whereExists(function ($subquery) use ($constituency_ids) {
+    //     $subquery->select(\DB::raw(1))
+    //         ->from('voters as v2')
+    //         ->whereColumn([
+
+    //              ['v2.surname', 'voters.surname'], 
+    //             ['v2.first_name', 'voters.first_name'],
+    //              ['v2.second_name', 'voters.second_name'],
+    //             ['v2.dob', 'voters.dob']
+    //         ])
+
+    //         ->whereColumn('v2.id', '!=', 'voters.id')
+    //         ->where(function($q) use ($constituency_ids) {
+    //             // Check if the duplicate is in any of the user's constituencies
+    //             $q->whereIn('v2.const', $constituency_ids);
+    //         });
+    // });
+
+
+
     $query = Voter::query()
-    ->select('voters.*', 'constituencies.name as constituency_name')
-    ->join('constituencies', 'voters.const', '=', 'constituencies.id')
-    ->whereIn('voters.const', $constituency_ids)
-    ->where('voters.exists_in_database', false)
-    //->whereExists(function ($subquery) {
-    ->whereExists(function ($subquery) use ($constituency_ids) {
+    ->select('voters.*', 'constituencies.name as constituency_name') 
+    ->join('constituencies', 'voters.const', '=', 'constituencies.id') 
+    ->whereExists(function ($subquery) {
         $subquery->select(\DB::raw(1))
             ->from('voters as v2')
             ->whereColumn([
-
-                 ['v2.surname', 'voters.surname'], 
-                ['v2.first_name', 'voters.first_name'],
+                 ['v2.surname', 'voters.surname'],
+                 ['v2.first_name', 'voters.first_name'],
+                 ['v2.dob', 'voters.dob'],
                  ['v2.second_name', 'voters.second_name'],
-                ['v2.dob', 'voters.dob']
             ])
-
-            ->whereColumn('v2.id', '!=', 'voters.id')
-            ->where(function($q) use ($constituency_ids) {
-                // Check if the duplicate is in any of the user's constituencies
-                $q->whereIn('v2.const', $constituency_ids);
-            });
-    });
+            ->whereColumn('v2.id', '!=', 'voters.id');
+    })
+    ->whereIn('voters.const', $constituency_ids);
 
     // Search fields - including all fillable columns
     $searchableFields = [
