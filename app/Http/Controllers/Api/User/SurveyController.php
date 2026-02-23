@@ -637,7 +637,7 @@ class SurveyController extends Controller
 
                     $validator = Validator::make($request->all(), [
                         'voter_id' => 'required|exists:voters,id',
-                        'call_center_caller_id' => 'nullable|string',
+                        'call_center_caller_id' => 'nullable',
                         'call_center_caller_name' => 'nullable|string',
                         'call_center_voter_name' => 'nullable|string',
                         'call_center_date_time' => 'nullable|string',
@@ -645,8 +645,8 @@ class SurveyController extends Controller
                         'call_center_phone' => 'nullable|string',
                         'call_center_follow_up' => 'nullable|string',
                         'call_center_list_voter_contacts' => 'nullable|string',
-                        'call_center_number_called' => 'nullable|string',
-                        'call_center_number_calls_made' => 'nullable|string',
+                        'call_center_number_called' => 'nullable',
+                        'call_center_number_calls_made' => 'nullable',
                         'call_center_soliciting_volunteers' => 'nullable|string',
                         'call_center_address_special_concerns' => 'nullable|string',
                         'call_center_voting_decisions' => 'nullable|string',
