@@ -1305,7 +1305,7 @@ class VoterController extends Controller
             return strtolower(urldecode(trim($column)));
         }, explode(',', $_GET['columns']));
 
-        dd($columns);
+        dd($columns,$callCenters); 
        $timestamp = now('America/New_York')->format('Y-m-d_g:iA');
        return Excel::download(new CallCenterExport($callCenters, $request, $columns), 'Call_Center_' . $timestamp . '.xlsx'); 
 
