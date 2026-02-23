@@ -670,7 +670,8 @@ class SurveyController extends Controller
                             'call_center_phone' => $request->input('call_center_phone'),
                             'call_center_follow_up' => $request->input('call_center_follow_up'),
                             'call_center_list_voter_contacts' => $request->input('call_center_list_voter_contacts'),
-                            'call_center_number_called' => $request->input('call_center_number_called'),
+                            'call_center_number_called' => $request->input('call_center_number_called'), 
+                            'call_center_voting_for' => $request->input('call_center_voting_for'),
                             'call_center_number_calls_made' => $request->input('call_center_number_calls_made'),
                             'call_center_soliciting_volunteers' => $request->input('call_center_soliciting_volunteers'),
                             'call_center_address_special_concerns' => $request->input('call_center_address_special_concerns'),
@@ -1564,6 +1565,8 @@ class SurveyController extends Controller
                         ->whereIn('voters.voter', $voterIds)
                         ->whereIn('voters.const', $constituencies)
                         ->get();
+
+                        
 
                         // $addressVoters = Voter::select(
                         //     'voters.*', 
