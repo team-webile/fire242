@@ -1846,7 +1846,7 @@ public function getVotersDiffAddress(Request $request)
 }
 
 
-
+    
 public function newlyRegistered(Request $request)   
 {
     $constituency_ids = explode(',', auth()->user()->constituency_id);
@@ -1855,6 +1855,7 @@ public function newlyRegistered(Request $request)
     ->select('voters.*', 'constituencies.name as constituency_name')
     ->join('constituencies', 'voters.const', '=', 'constituencies.id')
     ->whereIn('voters.const', $constituency_ids);
+   
 
     // Search fields - including all fillable columns
     $searchableFields = [
@@ -1982,6 +1983,8 @@ public function newlyRegistered(Request $request)
         'searchable_fields' => $searchableFields,
     ]); 
 } 
+
+ 
 
 
  
