@@ -21,23 +21,18 @@ class ManagerDuplicateVoterController extends Controller
          $const = auth()->user()->constituency_id;
         $constituency_id = explode(',', $const);
         $query = Voter::query()
-        ->select('voters.*', 'constituencies.name as constituency_name')
-        ->join('constituencies', 'voters.const', '=', 'constituencies.id')
-        ->whereExists(function ($subquery) use ($constituency_id) {
+        ->select('voters.*', 'constituencies.name as constituency_name') 
+        ->join('constituencies', 'voters.const', '=', 'constituencies.id') 
+        ->whereExists(function ($subquery) {
             $subquery->select(\DB::raw(1))
                 ->from('voters as v2')
                 ->whereColumn([
-                    ['v2.surname', 'voters.surname'],
-                    ['v2.first_name', 'voters.first_name'],
-                    ['v2.second_name', 'voters.second_name'],
-                    ['v2.dob', 'voters.dob']
+                     ['v2.surname', 'voters.surname'],
+                     ['v2.first_name', 'voters.first_name'],
+                     ['v2.dob', 'voters.dob'],
+                     ['v2.second_name', 'voters.second_name'],
                 ])
-
-                ->whereColumn('v2.id', '!=', 'voters.id')
-                ->where(function($q) use ($constituency_id) {
-                    // Check if the duplicate is in any of the user's constituencies
-                    $q->whereIn('v2.const', $constituency_id);
-                });
+                ->whereColumn('v2.id', '!=', 'voters.id');
         })
         ->whereIn('voters.const', $constituency_id);
 
