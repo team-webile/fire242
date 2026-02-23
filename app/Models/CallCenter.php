@@ -25,6 +25,7 @@ class CallCenter extends Model
         'call_center_address_special_concerns',
         'call_center_voting_decisions',
         'user_id',
+        'call_center_voting_for',
     ];
 
     public function voter()
