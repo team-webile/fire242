@@ -1583,6 +1583,8 @@ class SurveyController extends Controller
             $voter->address_voters = $addressVoters;
             // Load call center record for this voter (voters.id)
             $voter->call_center = CallCenter::where('voter_id', $voter->id)->first();
+            $voter->voter_phone_code = $voter->phone_code ?? '';
+            $voter->voter_phone = $voter->phone_number ?? '';
         }
  
 
