@@ -80,6 +80,9 @@ class CallCenterExport implements FromCollection, WithHeadings, WithStyles
             if (in_array('voter contacts', $this->columns)) {
                 $row['Voter Contacts'] = $callCenter->call_center_list_voter_contacts;
             }
+            if (in_array('other comments', $this->columns)) {
+                $row['Other Comments'] = $callCenter->call_center_other_comments;
+            }
             if (in_array('soliciting volunteers', $this->columns)) {
                 $row['Soliciting Volunteers'] = $callCenter->call_center_soliciting_volunteers;
             }
@@ -122,9 +125,10 @@ class CallCenterExport implements FromCollection, WithHeadings, WithStyles
                 case 'candidate follow up': $headers[] = 'Candidate Follow Up'; break;
                 case 'address special concerns': $headers[] = 'Address Special Concerns'; break;
                 case 'voter contacts': $headers[] = 'Voter Contacts'; break;
+                case 'other comments' : $headers[] = 'Other Comments'; break;
                 case 'soliciting volunteers': $headers[] = 'Soliciting Volunteers'; break;
                 case 'number called': $headers[] = 'Number Called'; break;
-                case 'number of calls': $headers[] = 'Number of Calls'; break;
+                case 'number of calls': $headers[] = 'Number of Calls'; break; 
                 case 'created at': $headers[] = 'Created At'; break;
                 default: $headers[] = $column;
             }
