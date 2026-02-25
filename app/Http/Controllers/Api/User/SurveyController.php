@@ -650,6 +650,7 @@ class SurveyController extends Controller
                         'call_center_soliciting_volunteers' => 'nullable|string',
                         'call_center_address_special_concerns' => 'nullable|string',
                         'call_center_voting_decisions' => 'nullable|string',
+                        'call_center_other_comments' => 'nullable|string'
                     ]);
 
                     if ($validator->fails()) {
@@ -677,6 +678,7 @@ class SurveyController extends Controller
                             'call_center_address_special_concerns' => $request->input('call_center_address_special_concerns'),
                             'call_center_voting_decisions' => $request->input('call_center_voting_decisions'),
                             'user_id' => auth()->user()->id, 
+                            'call_center_other_comments' => $request->input('call_center_other_comments'),
                         ];
 
                         $callCenter = CallCenter::updateOrCreate(
