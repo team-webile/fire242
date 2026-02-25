@@ -128,7 +128,7 @@ class CallCenterExport implements FromCollection, WithHeadings, WithStyles
                 case 'other comments' : $headers[] = 'Other Comments'; break;
                 case 'soliciting volunteers': $headers[] = 'Soliciting Volunteers'; break;
                 case 'number called': $headers[] = 'Number Called'; break;
-                case 'number of calls': $headers[] = 'Number of Calls'; break; 
+                case 'number of calls': $headers[] = 'Number of Calls'; break;  
                 case 'created at': $headers[] = 'Created At'; break;
                 default: $headers[] = $column;
             }
